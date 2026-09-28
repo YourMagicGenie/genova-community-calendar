@@ -12,9 +12,9 @@ The calendar is the public event-discovery layer of Porto Aperto | Genova: an ea
 
 - Keep the public event page and read-only category subscriptions free to use and usable without a personal account.
 - Link each listing to its publisher or organizer. Keep the calendar complementary to Porto Aperto's existing community channels: WhatsApp remains the clubhouse and Instagram remains a public discovery channel.
-- Start with a small, hand-reviewed set of local sources and a weekly community review during the pilot. Learn where coverage is missing before adding more feeds.
+- Start with a small, hand-reviewed set of local sources and review it weekly during the pilot. Community feedback is welcome but not required to maintain the calendar.
 - Prefer free-tier hosting and collection methods. Do not enable paid API keys or services until the expected cost and owner are recorded.
-- Link the calendar from Porto Aperto's existing public web presence. Confirm the exact site, URL, and placement with its maintainer before production integration.
+- Make the standalone calendar URL easy to share through Porto Aperto's public channels (currently Instagram and WhatsApp). A separate Porto Aperto website is not a launch dependency; add a site link later if one exists.
 - Event link or flyer suggestions from members, with curator approval, and AI-assisted extraction are possible later steps after the manual pilot; they are not launch requirements.
 
 ## Intended experience
@@ -67,7 +67,7 @@ The calendar is the public event-discovery layer of Porto Aperto | Genova: an ea
 
 ## Acceptance criteria for the first usable release
 
-- [ ] The calendar is visibly presented as a Porto Aperto | Genova feature and linked from the existing public web presence; public browsing and category subscriptions are free and do not require an account.
+- [ ] The calendar is visibly presented as a Porto Aperto | Genova feature and can be shared through its public channels; browsing and category subscriptions are free and do not require an account.
 - [ ] A review preview uses clearly labeled sample data and does not depend on the upstream Supabase project, real user sessions, or service keys.
 - [ ] No paid third-party API is needed to view the sample preview; document expected service costs before enabling paid collection features.
 - [ ] A Genova event page and separate preview link are accessible on mobile; pull requests affecting visible output include a working preview link before merge.
