@@ -2,13 +2,24 @@
 
 ## Goal
 
-Create a Genova-first event discovery calendar that saves people from checking many local websites. Collect public listings from publishers, institutions, venues, and event platforms; organize and deduplicate them; and offer a compact calendar that updates automatically in Google Calendar, Apple Calendar, and other iCalendar-compatible apps.
+Create a Genova-first event discovery calendar as a public feature of Porto Aperto | Genova, saving people from checking many local websites. Collect public listings from publishers, institutions, venues, and event platforms; organize and deduplicate them; and offer a compact calendar that updates automatically in Google Calendar, Apple Calendar, and other iCalendar-compatible apps.
 
 This document is the project's guiding definition of success. Implement it in small issues and pull requests. Adapt the existing Community Calendar pipeline where it already meets a requirement rather than rebuilding it. Preserve upstream attribution and the Apache 2.0 license.
 
+## Porto Aperto | Genova fit
+
+The calendar is the public event-discovery layer of Porto Aperto | Genova: an easy, mobile-first way for people to find activities and connect with the original organizers.
+
+- Keep the public event page and read-only category subscriptions free to use and usable without a personal account.
+- Link each listing to its publisher or organizer. Keep the calendar complementary to Porto Aperto's existing community channels: WhatsApp remains the clubhouse and Instagram remains a public discovery channel.
+- Start with a small, hand-reviewed set of local sources and a weekly community review during the pilot. Learn where coverage is missing before adding more feeds.
+- Prefer free-tier hosting and collection methods. Do not enable paid API keys or services until the expected cost and owner are recorded.
+- Link the calendar from Porto Aperto's existing public web presence. Confirm the exact site, URL, and placement with its maintainer before production integration.
+- Event link or flyer suggestions from members, with curator approval, and AI-assisted extraction are possible later steps after the manual pilot; they are not launch requirements.
+
 ## Intended experience
 
-1. I open a Genova event page and see what is happening this week or weekend, with useful categories and links to original listings.
+1. I open the Porto Aperto | Genova event page and see what is happening this week or weekend, with useful categories and links to original listings.
 2. I subscribe to only the categories I want in my calendar. The subscription stays reasonably small and reflects event changes.
 3. Before approving a UI or data change, I open a working preview link on my phone and inspect the result without asking someone to deploy it manually.
 
@@ -56,6 +67,9 @@ This document is the project's guiding definition of success. Implement it in sm
 
 ## Acceptance criteria for the first usable release
 
+- [ ] The calendar is visibly presented as a Porto Aperto | Genova feature and linked from the existing public web presence; public browsing and category subscriptions are free and do not require an account.
+- [ ] A review preview uses clearly labeled sample data and does not depend on the upstream Supabase project, real user sessions, or service keys.
+- [ ] No paid third-party API is needed to view the sample preview; document expected service costs before enabling paid collection features.
 - [ ] A Genova event page and separate preview link are accessible on mobile; pull requests affecting visible output include a working preview link before merge.
 - [ ] `Europe/Rome` is applied consistently, including daylight-saving transitions, with no invented start times.
 - [ ] At least five independent Genova-area sources work across official/tourism listings, a local publisher, and a direct venue or organizer. At least one working source uses a non-ICS collection method. Any substitutions and their reasons are documented.
@@ -70,7 +84,7 @@ This document is the project's guiding definition of success. Implement it in sm
 
 ## Outside the first release
 
-Ticket purchasing, RSVP management, personal accounts, personalized AI scoring, comprehensive social-media ingestion, and expansion to other cities.
+Ticket purchasing, RSVP management, personal accounts, personalized AI scoring, comprehensive social-media ingestion, member link/flyer submissions with review, AI-assisted flyer extraction, and expansion to other cities.
 
 ## References
 
