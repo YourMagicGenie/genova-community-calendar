@@ -32,19 +32,19 @@ Provider limits can change; this audit was checked on 2026-09-28.
 ## Recommended order
 
 1. Add a clearly labeled fixture-backed preview to the existing UI. It must fail closed if its fixture cannot load and make no calls to Supabase, including when the browser has an old upstream login session.
-2. Have a repository owner or Porto Aperto deployment maintainer connect the fork to Cloudflare Pages for unique PR preview URLs. Use sample data only and keep the production branch's external Porto Aperto domain unconfigured until reviewed.
-3. Identify the Porto Aperto website repository and public URL, then add a link to the calendar there. The current GitHub connection exposes only the calendar fork, so this repository is not available to change in this work.
+2. Once sample mode is ready, connect the fork to Cloudflare Pages for unique PR preview URLs. This is a one-time account/dashboard action for you as owner; the preview stays separate from Porto Aperto's community channels.
+3. Once a standalone calendar URL exists, share it through Porto Aperto's public channels. No separate website repository is needed; a site link can be added later if one exists.
 4. After the preview works, create a separate Genova Supabase project (or choose a different backend) and configure a Genova-only collection pipeline. Store any service key in GitHub Actions secrets, never in a file or chat.
 5. Review the source list, geographic boundary, categories, and event examples with a Porto Aperto community curator before the real-source pilot.
 
-## Work that needs a human outside this repository
+## Owner actions later (you can do these without another contributor)
 
-- [ ] A Porto Aperto site/deployment maintainer identifies the current public site URL and repository and decides where a calendar link belongs.
-- [ ] Before the first UI pull request that needs a phone preview, a repository owner or the deployment maintainer connects this repository to Cloudflare Pages (or confirms an existing host that provides unique PR preview URLs). This requires a human account/dashboard action.
+- [ ] Decide which Porto Aperto public channels should point to the calendar once its public URL exists.
+- [ ] Once sample mode is ready, connect the repository to Cloudflare Pages (or choose another host for unique PR previews). This is a one-time dashboard action; no additional contributor is required.
 - [ ] Before real events are published, a project owner chooses and configures a separate Genova backend and records the expected ongoing cost.
-- [ ] A local curator reviews the Genova boundary, candidate sources, category examples, and the weekly review process.
+- [ ] Review the Genova boundary, candidate sources, category examples, and weekly review process yourself; community input can be added when useful.
 
-You do not need to install anything on your computer for this documentation and audit PR. The first phone-preview URL and any real-event publication do need the external setup above.
+There is no local programming task for you right now. Later, you will need the one-time preview-host setup and a separate Genova backend before real events are published.
 
 ## References
 
