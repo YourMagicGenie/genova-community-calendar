@@ -61,7 +61,7 @@
 ### Task 3: Enable reviewable pull-request previews
 
 - [ ] Connect `YourMagicGenie/genova-community-calendar` to a Cloudflare Pages project through its GitHub integration. Use the static sample preview only; add no service keys or Functions.
-- [ ] Set `main` as the production branch for the separate calendar preview site and leave the existing Porto Aperto domain untouched until the production owner approves the integration.
+- [ ] Set `main` as the production branch for the separate calendar preview URL. Do not attach a Porto Aperto custom domain during this test.
 - [ ] Open a test pull request and verify Cloudflare attaches a unique preview URL, updates it after a new commit, and that it opens on a phone without a login.
 - [ ] Document the preview link location, review steps, and owner-managed connection in `CONTRIBUTING.md`.
 - [ ] Share the verified calendar URL through Porto Aperto's public Instagram profile or other existing community channels. This is an owner update; a separate website repository is not required.
