@@ -64,7 +64,7 @@
 - [ ] Set `main` as the production branch for the separate calendar preview site and leave the existing Porto Aperto domain untouched until the production owner approves the integration.
 - [ ] Open a test pull request and verify Cloudflare attaches a unique preview URL, updates it after a new commit, and that it opens on a phone without a login.
 - [ ] Document the preview link location, review steps, and owner-managed connection in `CONTRIBUTING.md`.
-- [ ] A Porto Aperto site maintainer adds a link to the verified calendar URL after identifying the site repository and route.
+- [ ] Share the verified calendar URL through Porto Aperto's public Instagram profile or other existing community channels. This is an owner update; a separate website repository is not required.
 
 ## Completion Check
 
