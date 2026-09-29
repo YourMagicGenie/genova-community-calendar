@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#123b3e" />
+  <title>Porto Aperto | Genova events</title>
+  <link rel="stylesheet" href="sample-preview.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../?city=genova&preview=sample" aria-label="Porto Aperto Genova sample preview home">
+      <span class="brand-mark" aria-hidden="true">PA</span>
+      <span>Porto Aperto <span class="brand-divider">|</span> Genova</span>
+    </a>
+    <span class="timezone">Europe/Rome</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Good things are happening nearby</p>
+      <h1 id="page-title">Find your next plan in Genova.</h1>
+      <p class="intro-copy">One local list for music, theatre, art, sport, food and getting out together.</p>
+      <p class="sample-notice"><strong>Preview only:</strong> every event, venue and source below is fictional example data. Nothing here is a live listing.</p>
+    </section>
+
+    <section class="controls" aria-label="Filter sample events">
+      <label for="date-filter">When
+        <select id="date-filter">
+          <option value="week">Next 7 days</option>
+          <option value="weekend">This weekend</option>
+          <option value="all">All sample dates</option>
+        </select>
+      </label>
+      <label for="category-filter">Category
+        <select id="category-filter">
+          <option value="all">Everything</option>
+          <option value="music">Music</option>
+          <option value="theatre">Theatre</option>
+          <option value="art">Art &amp; exhibitions</option>
+          <option value="sports">Sports</option>
+          <option value="food">Food &amp; drink</option>
+          <option value="outdoors">Outdoor</option>
+          <option value="community">Community</option>
+        </select>
+      </label>
+      <button id="date-night-filter" class="filter-button" type="button" aria-pressed="false">Date night</button>
+    </section>
+
+    <section id="events" aria-labelledby="events-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">A few ideas to start</p>
+          <h2 id="events-title">Coming up</h2>
+        </div>
+        <p id="event-status" class="event-status" role="status" aria-live="polite">Loading sample events…</p>
+      </div>
+      <div id="event-list" class="event-list" aria-live="polite"></div>
+    </section>
+
+    <aside class="next-step">
+      <h2>One calendar, many local sources</h2>
+      <p>Real listings and calendar subscriptions will be added after sources are checked for location, dates and access rules.</p>
+    </aside>
+  </main>
+
+  <footer>Porto Aperto | Genova · Sample preview · No account required</footer>
+  <script src="sample-preview.js"></script>
+  <script>
+    window.GenovaSamplePreview.startSamplePreview(document);
+  </script>
+</body>
+</html>

@@ -6,7 +6,9 @@
   var params = new URLSearchParams(window.location.search);
   var search = params.toString() ? '?' + params.toString() : '';
   var hash = window.location.hash;
-  window.location.replace('xmlui/index.html' + search + hash);
+  var isGenovaSample = params.get('city') === 'genova' && params.get('preview') === 'sample';
+  var destination = isGenovaSample ? 'xmlui/genova-sample-preview.html' : 'xmlui/index.html';
+  window.location.replace(destination + search + hash);
 </script>
 </body>
 </html>

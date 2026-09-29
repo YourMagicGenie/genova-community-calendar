@@ -1,0 +1,68 @@
+[
+  {
+    "id": "sample-food-workshop",
+    "title": "Make fresh pesto together",
+    "category": "food",
+    "daysFromToday": 1,
+    "startTime": "18:30",
+    "venue": "Example neighbourhood kitchen, Genova",
+    "sourceName": "Example Community Kitchen",
+    "sourceUrl": "https://example.org/genova/pesto-workshop",
+    "tags": []
+  },
+  {
+    "id": "sample-jazz-evening",
+    "title": "Jazz at the harbour",
+    "category": "music",
+    "daysFromToday": 3,
+    "startTime": "20:00",
+    "venue": "Example music room, Genova",
+    "sourceName": "Example Local Venue",
+    "sourceUrl": "https://example.org/genova/jazz",
+    "tags": ["date-night"]
+  },
+  {
+    "id": "sample-gallery-evening",
+    "title": "An evening with Ligurian artists",
+    "category": "art",
+    "daysFromToday": 4,
+    "startTime": null,
+    "venue": "Example gallery, Genova",
+    "sourceName": "Example Arts Publisher",
+    "sourceUrl": "https://example.org/genova/art-evening",
+    "tags": ["date-night"]
+  },
+  {
+    "id": "sample-theatre",
+    "title": "A comedy in the old town",
+    "category": "theatre",
+    "daysFromToday": 5,
+    "startTime": "21:00",
+    "venue": "Example theatre, Genova",
+    "sourceName": "Example Theatre Company",
+    "sourceUrl": "https://example.org/genova/comedy",
+    "tags": []
+  },
+  {
+    "id": "sample-volleyball",
+    "title": "Community volleyball match",
+    "category": "sports",
+    "daysFromToday": 6,
+    "startTime": "17:00",
+    "venue": "Example sports court, Genova",
+    "sourceName": "Example Sports Club",
+    "sourceUrl": "https://example.org/genova/volleyball",
+    "tags": []
+  },
+  {
+    "id": "sample-walk",
+    "title": "A coastal walk and aperitivo",
+    "category": "outdoors",
+    "daysFromToday": 8,
+    "startTime": "16:00",
+    "venue": "Example meeting point, Genova",
+    "sourceName": "Example Outdoor Group",
+    "sourceUrl": "https://example.org/genova/coastal-walk",
+    "tags": ["date-night"]
+  }
+]
