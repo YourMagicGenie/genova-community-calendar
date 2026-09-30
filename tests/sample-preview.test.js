@@ -74,6 +74,22 @@ test('site entry sends only the Genova sample route to the isolated preview page
   assert.equal(destination('?city=asheville'), 'xmlui/index.html?city=asheville#events');
 });
 
+test('sample page labels itself as fictional and uses only local runtime assets', () => {
+  const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
+  assert.match(html, /Preview only:[\s\S]*fictional example data/);
+  assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
+  assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
+});
+
+test('sample page includes month navigation, a calendar grid and category checkboxes', () => {
+  const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
+  assert.match(html, /id="previous-month"/);
+  assert.match(html, /id="next-month"/);
+  assert.match(html, /id="current-month"/);
+  assert.match(html, /id="calendar-grid"/);
+  assert.match(html, /type="checkbox"[^>]+name="category-filter"/);
+});
+
 test('fixture validation requires source attribution and safe example links', () => {
   const api = requirePreview();
   assert.equal(api.validateSampleEvents([event()]).length, 1);
@@ -142,3 +158,79 @@ test('event renderer shows source, category and unknown time without inventing a
   assert.equal(source.href, 'https://example.org/events/jazz');
   assert.equal(source.rel, 'noopener noreferrer');
 });
+
+test('month calendar starts weeks on Monday and includes dates from adjacent months', () => {
+  const api = requirePreview();
+  const cells = api.calendarMonthCells(new Date('2026-09-29T07:00:00.000Z'));
+
+  assert.equal(cells.length, 35);
+  assert.deepEqual(cells[0], { date: '2026-08-31', dayNumber: 31, inMonth: false });
+  assert.deepEqual(cells[1], { date: '2026-09-01', dayNumber: 1, inMonth: true });
+  assert.deepEqual(cells.at(-1), { date: '2026-10-04', dayNumber: 4, inMonth: false });
+  assert.equal(api.calendarMonthInfo(new Date('2026-12-15T12:00:00.000Z'), 1).key, '2027-01');
+});
+
+test('calendar filters include multi-category events when any selected category matches', () => {
+  const api = requirePreview();
+  const events = [
+    event({ id: 'mixed', category: 'music', categories: ['music', 'art'], daysFromToday: 4 }),
+    event({ id: 'sports', category: 'sports', categories: ['sports'], daysFromToday: 4 }),
+  ];
+  const visible = api.filterCalendarEvents(events, {
+    selectedCategories: ['art'],
+    monthOffset: 0,
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  assert.deepEqual(visible.map((item) => item.id), ['mixed']);
+  assert.equal(visible[0].date, '2026-10-03');
+});
+
+test('calendar displays three events and expands all remaining events on a dense day', () => {
+  const api = requirePreview();
+  const events = Array.from({ length: 15 }, (_, index) => event({
+    id: `dense-${index + 1}`,
+    title: `Example event ${index + 1}`,
+    daysFromToday: 4,
+    startTime: `19:${String(index).padStart(2, '0')}`,
+    categories: ['music'],
+  }));
+  const grid = new FakeElement('div');
+  const status = new FakeElement('p');
+  const now = new Date('2026-09-29T07:00:00.000Z');
+
+  const visible = api.renderCalendar(new FakeDocument(), grid, status, events, {
+    now,
+    monthOffset: 0,
+    selectedCategories: ['music'],
+  });
+
+  const day = grid.children.find((cell) => cell.dataset.date === '2026-10-03');
+  const more = findElement(day, 'details');
+  assert.equal(visible.length, 15);
+  assert.equal(status.textContent, '15 sample events');
+  assert.ok(day, 'the calendar should render the event date');
+  assert.equal(day.children[1].children.length, 3);
+  assert.equal(more.children[0].textContent, '+12 more');
+  assert.equal(more.children[1].children.length, 12);
+});
+
+test('sample fixture contains at least fifteen clearly fictional events on one date', () => {
+  const events = JSON.parse(readFileSync(new URL('../xmlui/sample-events.json', `file://${__filename}`), 'utf8'));
+  const counts = new Map();
+  for (const item of events) counts.set(item.daysFromToday, (counts.get(item.daysFromToday) || 0) + 1);
+  assert.ok(Math.max(...counts.values()) >= 15);
+  assert.ok(events.every((item) => item.sourceUrl.startsWith('https://example.org/')));
+});
+
+function findElement(root, tagName) {
+  return findElements(root, tagName)[0];
+}
+
+function findElements(root, tagName) {
+  if (!root) return [];
+  return [
+    ...(root.tagName === tagName ? [root] : []),
+    ...root.children.flatMap((child) => findElements(child, tagName)),
+  ];
+}
