@@ -1,0 +1,275 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const vm = require('node:vm');
+
+let preview;
+try {
+  preview = require('../xmlui/sample-preview.js');
+} catch (_) {
+  preview = null;
+}
+
+function requirePreview() {
+  assert.ok(preview, 'the isolated Genova sample preview module must exist');
+  return preview;
+}
+
+function event(overrides = {}) {
+  return {
+    id: 'example-jazz',
+    title: 'Jazz by the harbour',
+    category: 'music',
+    daysFromToday: 4,
+    startTime: '19:30',
+    venue: 'Example venue, Genova',
+    sourceName: 'Example local publisher',
+    sourceUrl: 'https://example.org/events/jazz',
+    tags: ['date-night'],
+    ...overrides,
+  };
+}
+
+class FakeElement {
+  constructor(tagName) {
+    this.tagName = tagName;
+    this.children = [];
+    this.dataset = {};
+    this.attributes = {};
+    this._textContent = '';
+  }
+  append(...elements) { this.children.push(...elements); }
+  replaceChildren(...elements) { this.children = [...elements]; }
+  set textContent(value) { this._textContent = value; this.children = []; }
+  get textContent() { return this._textContent + this.children.map((child) => child.textContent).join(''); }
+  setAttribute(name, value) { this.attributes[name] = value; }
+}
+
+class FakeDocument {
+  createElement(tagName) { return new FakeElement(tagName); }
+}
+
+test('sample preview route only matches Genova sample mode', () => {
+  const api = requirePreview();
+  assert.equal(api.matchesSampleRoute('https://calendar.example/?city=genova&preview=sample'), true);
+  assert.equal(api.matchesSampleRoute('https://calendar.example/?city=asheville&preview=sample'), false);
+  assert.equal(api.matchesSampleRoute('https://calendar.example/?city=genova'), false);
+});
+
+test('site entry sends only the Genova sample route to the isolated preview page', () => {
+  const html = readFileSync(new URL('../index.html', `file://${__filename}`), 'utf8');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+  assert.ok(script, 'site entry should include its route selector');
+
+  function destination(search) {
+    let target = '';
+    vm.runInNewContext(script, {
+      URLSearchParams,
+      window: { location: { search, hash: '#events', replace: (value) => { target = value; } } },
+    });
+    return target;
+  }
+
+  assert.equal(destination('?city=genova&preview=sample'), 'xmlui/genova-sample-preview.html?city=genova&preview=sample#events');
+  assert.equal(destination('?city=asheville'), 'xmlui/index.html?city=asheville#events');
+});
+
+test('sample page labels itself as fictional and uses only local runtime assets', () => {
+  const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
+  assert.match(html, /Preview only:[\s\S]*fictional example data/);
+  assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
+  assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
+});
+
+test('sample page includes month navigation, a calendar grid and category checkboxes', () => {
+  const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
+  assert.match(html, /id="previous-month"/);
+  assert.match(html, /id="next-month"/);
+  assert.match(html, /id="current-month"/);
+  assert.match(html, /id="calendar-grid"/);
+  assert.match(html, /type="checkbox"[^>]+name="category-filter"/);
+});
+
+test('fixture validation requires source attribution and safe example links', () => {
+  const api = requirePreview();
+  assert.equal(api.validateSampleEvents([event()]).length, 1);
+  assert.throws(
+    () => api.validateSampleEvents([event({ sourceUrl: 'https://real-publisher.it/event' })]),
+    /example\.org/,
+  );
+  assert.throws(
+    () => api.validateSampleEvents([event({ sourceName: '' })]),
+    /sourceName/,
+  );
+});
+
+test('time filters use Europe/Rome calendar dates and retain unknown times as unknown', () => {
+  const api = requirePreview();
+  const now = new Date('2026-09-29T07:00:00.000Z');
+  const events = [
+    event({ id: 'weekday', daysFromToday: 1, startTime: null }),
+    event({ id: 'saturday', daysFromToday: 4, category: 'art' }),
+    event({ id: 'outside-window', daysFromToday: 10 }),
+    event({ id: 'next-weekend', daysFromToday: 11 }),
+  ];
+
+  const weekend = api.filterSampleEvents(events, {
+    category: 'all',
+    dateWindow: 'weekend',
+    now,
+  });
+  assert.deepEqual(weekend.map((item) => item.id), ['saturday']);
+  assert.equal(weekend[0].date, '2026-10-03');
+
+  const artThisWeek = api.filterSampleEvents(events, {
+    category: 'art',
+    dateWindow: 'week',
+    now,
+  });
+  assert.deepEqual(artThisWeek.map((item) => item.id), ['saturday']);
+  assert.equal(api.filterSampleEvents(events, { dateWindow: 'week', now })[0].startTime, null);
+});
+
+test('fixture loader fails closed when sample data cannot be fetched', async () => {
+  const api = requirePreview();
+  await assert.rejects(
+    api.loadSampleEvents(async () => ({ ok: false, status: 404 })),
+    /sample events/i,
+  );
+});
+
+test('event renderer shows source, category and unknown time without inventing a time', () => {
+  const api = requirePreview();
+  const list = new FakeElement('div');
+  const status = new FakeElement('p');
+  const now = new Date('2026-09-29T07:00:00.000Z');
+  const visible = api.renderSampleEvents(new FakeDocument(), list, status, [
+    event({ id: 'art', category: 'art', startTime: null }),
+    event({ id: 'music', category: 'music' }),
+  ], { category: 'art', dateWindow: 'all', now });
+
+  assert.equal(visible.length, 1);
+  assert.equal(status.textContent, '1 sample event');
+  assert.equal(list.children.length, 1);
+  assert.match(list.textContent, /Time not listed/);
+  assert.match(list.textContent, /Art & exhibitions/);
+  assert.match(list.textContent, /Date night/);
+  const source = list.children[0].children[4];
+  assert.equal(source.href, 'https://example.org/events/jazz');
+  assert.equal(source.rel, 'noopener noreferrer');
+});
+
+test('month calendar starts weeks on Monday and includes dates from adjacent months', () => {
+  const api = requirePreview();
+  const cells = api.calendarMonthCells(new Date('2026-09-29T07:00:00.000Z'));
+
+  assert.equal(cells.length, 35);
+  assert.deepEqual(cells[0], { date: '2026-08-31', dayNumber: 31, inMonth: false });
+  assert.deepEqual(cells[1], { date: '2026-09-01', dayNumber: 1, inMonth: true });
+  assert.deepEqual(cells.at(-1), { date: '2026-10-04', dayNumber: 4, inMonth: false });
+  assert.equal(api.calendarMonthInfo(new Date('2026-12-15T12:00:00.000Z'), 1).key, '2027-01');
+});
+
+test('calendar filters include multi-category events when any selected category matches', () => {
+  const api = requirePreview();
+  const events = [
+    event({ id: 'mixed', category: 'music', categories: ['music', 'art'], daysFromToday: 4 }),
+    event({ id: 'sports', category: 'sports', categories: ['sports'], daysFromToday: 4 }),
+  ];
+  const visible = api.filterCalendarEvents(events, {
+    selectedCategories: ['art'],
+    monthOffset: 0,
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  assert.deepEqual(visible.map((item) => item.id), ['mixed']);
+  assert.equal(visible[0].date, '2026-10-03');
+});
+
+test('calendar displays three events and expands all remaining events on a dense day', () => {
+  const api = requirePreview();
+  const events = Array.from({ length: 15 }, (_, index) => event({
+    id: `dense-${index + 1}`,
+    title: `Example event ${index + 1}`,
+    daysFromToday: 4,
+    startTime: `19:${String(index).padStart(2, '0')}`,
+    categories: ['music'],
+  }));
+  const grid = new FakeElement('div');
+  const status = new FakeElement('p');
+  const now = new Date('2026-09-29T07:00:00.000Z');
+
+  const visible = api.renderCalendar(new FakeDocument(), grid, status, events, {
+    now,
+    monthOffset: 0,
+    selectedCategories: ['music'],
+  });
+
+  const day = grid.children.find((cell) => cell.dataset.date === '2026-10-03');
+  const more = findElement(day, 'details');
+  assert.equal(visible.length, 15);
+  assert.equal(status.textContent, '15 sample events');
+  assert.ok(day, 'the calendar should render the event date');
+  assert.equal(day.children[1].children.length, 3);
+  assert.equal(more.children[0].textContent, '+12 more');
+  assert.equal(more.children[1].children.length, 12);
+});
+
+test('calendar keeps source attribution visible on the three compact event rows', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  const css = readFileSync(new URL('../xmlui/sample-preview.css', `file://${__filename}`), 'utf8');
+  api.renderCalendar(new FakeDocument(), grid, status, [event()], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  const day = grid.children.find((cell) => cell.dataset.date === '2026-10-03');
+  assert.match(day.textContent, /Example source: Example local publisher/);
+  assert.doesNotMatch(css, /\.calendar-day\s*>\s*\.calendar-day-events\s+\.calendar-event-source\s*,?\s*\n?\s*\.calendar-day\s*>\s*\.calendar-day-events\s+\.calendar-event-categories\s*\{\s*display:\s*none;/);
+});
+
+test('empty calendar dates display a clear no-events message', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  api.renderCalendar(new FakeDocument(), grid, status, [event()], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  const emptyDay = grid.children.find((cell) => cell.dataset.date === '2026-10-04');
+  assert.match(emptyDay.className, /calendar-day-empty/);
+  assert.match(emptyDay.textContent, /No events listed/);
+});
+
+test('calendar clearly reports when active filters match no sample events', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  api.renderCalendar(new FakeDocument(), grid, status, [event({ category: 'music', daysFromToday: 4 })], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+    selectedCategories: ['art'],
+  });
+
+  assert.equal(status.textContent, 'No sample events match these filters.');
+});
+
+test('sample fixture contains at least fifteen clearly fictional events on one date', () => {
+  const events = JSON.parse(readFileSync(new URL('../xmlui/sample-events.json', `file://${__filename}`), 'utf8'));
+  const counts = new Map();
+  for (const item of events) counts.set(item.daysFromToday, (counts.get(item.daysFromToday) || 0) + 1);
+  assert.ok(Math.max(...counts.values()) >= 15);
+  assert.ok(events.every((item) => item.sourceUrl.startsWith('https://example.org/')));
+});
+
+function findElement(root, tagName) {
+  return findElements(root, tagName)[0];
+}
+
+function findElements(root, tagName) {
+  if (!root) return [];
+  return [
+    ...(root.tagName === tagName ? [root] : []),
+    ...root.children.flatMap((child) => findElements(child, tagName)),
+  ];
+}

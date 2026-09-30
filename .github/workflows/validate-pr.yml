@@ -57,3 +57,6 @@ jobs:
 
       - name: Verify collapse-cache regression gate
         run: node scripts/bench_collapse_long.js
+
+      - name: Run Genova sample preview tests
+        run: node --test tests/sample-preview.test.js

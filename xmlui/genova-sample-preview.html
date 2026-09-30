@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#123b3e" />
+  <title>Porto Aperto | Genova events</title>
+  <link rel="stylesheet" href="sample-preview.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../?city=genova&amp;preview=sample" aria-label="Porto Aperto Genova sample preview home">
+      <span class="brand-mark" aria-hidden="true">PA</span>
+      <span>Porto Aperto <span class="brand-divider">|</span> Genova</span>
+    </a>
+    <span class="timezone">Europe/Rome</span>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Good things are happening nearby</p>
+      <h1 id="page-title">Find your next plan in Genova.</h1>
+      <p class="intro-copy">One local calendar for music, theatre, art, sport, food and getting out together.</p>
+      <p class="sample-notice"><strong>Preview only:</strong> every event, venue and source below is fictional example data. Nothing here is a live listing.</p>
+    </section>
+
+    <section class="calendar-controls" aria-label="Calendar controls">
+      <div class="calendar-toolbar" aria-label="Choose a month">
+        <button id="previous-month" type="button" aria-label="Previous month">‹ <span>Previous</span></button>
+        <h2 id="calendar-month" aria-live="polite">Loading month…</h2>
+        <button id="current-month" type="button">Today</button>
+        <button id="next-month" type="button" aria-label="Next month"><span>Next</span> ›</button>
+      </div>
+
+      <fieldset class="category-filters">
+        <legend>Show categories</legend>
+        <label><input type="checkbox" name="category-filter" value="music" checked /> Music</label>
+        <label><input type="checkbox" name="category-filter" value="theatre" checked /> Theatre</label>
+        <label><input type="checkbox" name="category-filter" value="art" checked /> Art &amp; exhibitions</label>
+        <label><input type="checkbox" name="category-filter" value="sports" checked /> Sports</label>
+        <label><input type="checkbox" name="category-filter" value="food" checked /> Food &amp; drink</label>
+        <label><input type="checkbox" name="category-filter" value="outdoors" checked /> Outdoor</label>
+        <label><input type="checkbox" name="category-filter" value="community" checked /> Community</label>
+        <button id="date-night-filter" class="filter-button" type="button" aria-pressed="false">Date night</button>
+      </fieldset>
+    </section>
+
+    <section aria-labelledby="calendar-month">
+      <p id="calendar-status" class="calendar-status" role="status" aria-live="polite">Loading sample events…</p>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <ol id="calendar-grid" class="calendar-grid" aria-label="Calendar days"></ol>
+    </section>
+
+    <aside class="next-step">
+      <h2>One calendar, many local sources</h2>
+      <p>Real listings and calendar subscriptions will be added after sources are checked for location, dates and access rules.</p>
+    </aside>
+  </main>
+
+  <footer>Porto Aperto | Genova · Sample preview · No account required</footer>
+  <script src="sample-preview.js"></script>
+  <script>
+    window.GenovaSamplePreview.startSamplePreview(document);
+  </script>
+</body>
+</html>
