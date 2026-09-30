@@ -215,6 +215,18 @@ test('calendar displays three events and expands all remaining events on a dense
   assert.equal(more.children[1].children.length, 12);
 });
 
+test('calendar clearly reports when active filters match no sample events', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  api.renderCalendar(new FakeDocument(), grid, status, [event({ category: 'music', daysFromToday: 4 })], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+    selectedCategories: ['art'],
+  });
+
+  assert.equal(status.textContent, 'No sample events match these filters.');
+});
+
 test('sample fixture contains at least fifteen clearly fictional events on one date', () => {
   const events = JSON.parse(readFileSync(new URL('../xmlui/sample-events.json', `file://${__filename}`), 'utf8'));
   const counts = new Map();
