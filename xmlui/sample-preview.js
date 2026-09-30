@@ -311,6 +311,10 @@
         }
       } else {
         day.className += ' calendar-day-empty';
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'calendar-day-empty-message';
+        emptyMessage.textContent = 'No events listed';
+        day.append(emptyMessage);
       }
       return day;
     });
