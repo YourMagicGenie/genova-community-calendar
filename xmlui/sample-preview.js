@@ -315,7 +315,9 @@
       return day;
     });
     grid.replaceChildren(...calendarCells);
-    status.textContent = `${visible.length} sample ${visible.length === 1 ? 'event' : 'events'}`;
+    status.textContent = visible.length
+      ? `${visible.length} sample ${visible.length === 1 ? 'event' : 'events'}`
+      : 'No sample events match these filters.';
     return visible;
   }
 
