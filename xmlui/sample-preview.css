@@ -198,6 +198,7 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
 .calendar-day-adjacent { background: #f4f2eb; }
 .calendar-day-adjacent .calendar-day-heading { color: #798687; }
 .calendar-day-empty { background: rgba(255,254,250,.58); }
+.calendar-day-empty-message { margin: .8rem 0 0; color: var(--muted); font-size: .72rem; }
 .calendar-day-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .3rem; margin: 0 0 .45rem; color: var(--sea); font-size: .95rem; font-weight: 800; }
 .calendar-day-full-date { color: var(--muted); font-size: .67rem; font-weight: 500; }
 .calendar-day-events { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
@@ -206,8 +207,8 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
 .calendar-event-link:hover .calendar-event-title { text-decoration: underline; text-underline-offset: .12em; }
 .calendar-event-title { overflow-wrap: anywhere; font-weight: 750; }
 .calendar-event-time { color: var(--muted); font-size: .65rem; }
-.calendar-day > .calendar-day-events .calendar-event-source,
 .calendar-day > .calendar-day-events .calendar-event-categories { display: none; }
+.calendar-day > .calendar-day-events .calendar-event-source { font-size: .55rem; }
 .calendar-day-more { margin-top: .35rem; color: var(--sea); font-size: .75rem; font-weight: 750; }
 .calendar-day-more summary { width: fit-content; cursor: pointer; text-decoration: underline; text-underline-offset: .14em; }
 .calendar-day-overflow { margin-top: .35rem; }
@@ -233,8 +234,8 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
   .calendar-event { padding: .5rem .6rem; font-size: .82rem; }
   .calendar-event-link { flex-direction: row; align-items: baseline; justify-content: space-between; gap: .75rem; }
   .calendar-event-time { flex: 0 0 auto; font-size: .75rem; }
-  .calendar-day > .calendar-day-events .calendar-event-source,
   .calendar-day > .calendar-day-events .calendar-event-categories { display: none; }
+  .calendar-day > .calendar-day-events .calendar-event-source { display: block; }
   .calendar-day-overflow .calendar-event-source,
   .calendar-day-overflow .calendar-event-categories { display: block; }
 }
