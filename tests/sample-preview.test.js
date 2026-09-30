@@ -215,6 +215,33 @@ test('calendar displays three events and expands all remaining events on a dense
   assert.equal(more.children[1].children.length, 12);
 });
 
+test('calendar keeps source attribution visible on the three compact event rows', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  const css = readFileSync(new URL('../xmlui/sample-preview.css', `file://${__filename}`), 'utf8');
+  api.renderCalendar(new FakeDocument(), grid, status, [event()], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  const day = grid.children.find((cell) => cell.dataset.date === '2026-10-03');
+  assert.match(day.textContent, /Example source: Example local publisher/);
+  assert.doesNotMatch(css, /\.calendar-day\s*>\s*\.calendar-day-events\s+\.calendar-event-source\s*,?\s*\n?\s*\.calendar-day\s*>\s*\.calendar-day-events\s+\.calendar-event-categories\s*\{\s*display:\s*none;/);
+});
+
+test('empty calendar dates display a clear no-events message', () => {
+  const api = requirePreview();
+  const grid = new FakeElement('ol');
+  const status = new FakeElement('p');
+  api.renderCalendar(new FakeDocument(), grid, status, [event()], {
+    now: new Date('2026-09-29T07:00:00.000Z'),
+  });
+
+  const emptyDay = grid.children.find((cell) => cell.dataset.date === '2026-10-04');
+  assert.match(emptyDay.className, /calendar-day-empty/);
+  assert.match(emptyDay.textContent, /No events listed/);
+});
+
 test('calendar clearly reports when active filters match no sample events', () => {
   const api = requirePreview();
   const grid = new FakeElement('ol');
