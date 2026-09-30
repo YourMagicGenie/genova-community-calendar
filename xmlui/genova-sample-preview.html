@@ -21,42 +21,37 @@
     <section class="intro" aria-labelledby="page-title">
       <p class="eyebrow">Good things are happening nearby</p>
       <h1 id="page-title">Find your next plan in Genova.</h1>
-      <p class="intro-copy">One local list for music, theatre, art, sport, food and getting out together.</p>
+      <p class="intro-copy">One local calendar for music, theatre, art, sport, food and getting out together.</p>
       <p class="sample-notice"><strong>Preview only:</strong> every event, venue and source below is fictional example data. Nothing here is a live listing.</p>
     </section>
 
-    <section class="controls" aria-label="Filter sample events">
-      <label for="date-filter">When
-        <select id="date-filter">
-          <option value="week">Next 7 days</option>
-          <option value="weekend">This weekend</option>
-          <option value="all">All sample dates</option>
-        </select>
-      </label>
-      <label for="category-filter">Category
-        <select id="category-filter">
-          <option value="all">Everything</option>
-          <option value="music">Music</option>
-          <option value="theatre">Theatre</option>
-          <option value="art">Art &amp; exhibitions</option>
-          <option value="sports">Sports</option>
-          <option value="food">Food &amp; drink</option>
-          <option value="outdoors">Outdoor</option>
-          <option value="community">Community</option>
-        </select>
-      </label>
-      <button id="date-night-filter" class="filter-button" type="button" aria-pressed="false">Date night</button>
+    <section class="calendar-controls" aria-label="Calendar controls">
+      <div class="calendar-toolbar" aria-label="Choose a month">
+        <button id="previous-month" type="button" aria-label="Previous month">‹ <span>Previous</span></button>
+        <h2 id="calendar-month" aria-live="polite">Loading month…</h2>
+        <button id="current-month" type="button">Today</button>
+        <button id="next-month" type="button" aria-label="Next month"><span>Next</span> ›</button>
+      </div>
+
+      <fieldset class="category-filters">
+        <legend>Show categories</legend>
+        <label><input type="checkbox" name="category-filter" value="music" checked /> Music</label>
+        <label><input type="checkbox" name="category-filter" value="theatre" checked /> Theatre</label>
+        <label><input type="checkbox" name="category-filter" value="art" checked /> Art &amp; exhibitions</label>
+        <label><input type="checkbox" name="category-filter" value="sports" checked /> Sports</label>
+        <label><input type="checkbox" name="category-filter" value="food" checked /> Food &amp; drink</label>
+        <label><input type="checkbox" name="category-filter" value="outdoors" checked /> Outdoor</label>
+        <label><input type="checkbox" name="category-filter" value="community" checked /> Community</label>
+        <button id="date-night-filter" class="filter-button" type="button" aria-pressed="false">Date night</button>
+      </fieldset>
     </section>
 
-    <section id="events" aria-labelledby="events-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">A few ideas to start</p>
-          <h2 id="events-title">Coming up</h2>
-        </div>
-        <p id="event-status" class="event-status" role="status" aria-live="polite">Loading sample events…</p>
+    <section aria-labelledby="calendar-month">
+      <p id="calendar-status" class="calendar-status" role="status" aria-live="polite">Loading sample events…</p>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
       </div>
-      <div id="event-list" class="event-list" aria-live="polite"></div>
+      <ol id="calendar-grid" class="calendar-grid" aria-label="Calendar days"></ol>
     </section>
 
     <aside class="next-step">
