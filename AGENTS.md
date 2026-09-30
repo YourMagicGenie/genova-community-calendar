@@ -640,3 +640,21 @@ Quick summary so you can act in this turn:
 - For `skip-worklist:` turns (your incoming turn begins literally with `skip-worklist: ` followed by the request), the user has authorized a direct edit for this turn. The host has already written a fresh `direct-edit` record to `resources/.worklist-authorization.json` covering all paths. Do **not** propose, do **not** write a worklist item — act on the rest of the message as a direct edit, the PreToolUse hook will allow it via the existing `fresh_bypass()` path. Same wire-format family as `approved:` / `drop:` / `iterate:`, but for one-turn direct-edit authorization.
 - `resources/worklist.json` carries a top-level `version: N` integer. Any write you make (apply_patch or mcp__filesystem write) must set `version: N+1` where `N` is what was on disk when you read the file. The PreToolUse hook denies stale writes with `reason=stale-worklist-version`; re-read, rebase, retry. `/__worklist/mutate` bumps the version on its own RMW path. Missing version field = treat as 0 (legacy migration path).
 <!-- bram:end -->
+
+
+## Persistent project memory
+
+This continuity bridge supplements the repository's existing operating instructions above.
+
+Project strategy, current state, consequential decisions and dependencies live in the private Project Keeper repository:
+
+- [Project Keeper agent rules](https://github.com/YourMagicGenie/Obsidian-Project-Keeper/blob/main/AGENTS.md)
+- [Genova Community Calendar](https://github.com/YourMagicGenie/Obsidian-Project-Keeper/blob/main/projects/genova-community-calendar/Genova%20Community%20Calendar.md)
+- [Current project status](https://github.com/YourMagicGenie/Obsidian-Project-Keeper/blob/main/projects/genova-community-calendar/Genova%20Community%20Calendar%20-%20Status.md)
+- [Consequential decisions](https://github.com/YourMagicGenie/Obsidian-Project-Keeper/blob/main/projects/genova-community-calendar/Genova%20Community%20Calendar%20-%20Decisions.md)
+
+Before substantial work on this project, consult that hub, Status and relevant decisions when access is available. Keep code, detailed tasks, PRs, CI and release history canonical in this implementation repository.
+
+When work changes a project-level milestone, accepted decision/pivot, validated finding, blocker/dependency, scope, future plan, next actions or canonical artifact, persist the concise durable delta to Project Keeper as part of the work. Routine debugging and ordinary commits do not need memory entries. Link evidence instead of copying code or issue backlogs.
+
+Do not change the human's now/next/later choices. A Status note has at most three immediate next actions. If Keeper cannot be written, state that the continuity update was not saved and provide the exact concise delta to persist; do not claim success.
