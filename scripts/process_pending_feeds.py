@@ -81,13 +81,14 @@ def insert_feeds(city, feeds, supabase_url, service_key):
     errors = 0
 
     for feed in feeds:
-        status = "active" if feed["feed_type"] == "scraper" else "pending"
         row = {
             "city": city,
             "url": feed["url"],
             "name": feed["name"],
             "feed_type": feed["feed_type"],
-            "status": status,
+            # Registering a candidate never grants permission to collect it.
+            # An authorized maintainer must explicitly approve and activate it.
+            "status": "pending",
         }
         if feed["scraper_cmd"]:
             row["scraper_cmd"] = feed["scraper_cmd"]
@@ -127,10 +128,10 @@ def insert_feeds(city, feeds, supabase_url, service_key):
 TEMPLATE = """\
 # Add feed URLs or scraper outputs here.
 #
-# Pipeline: On each build, process_pending_feeds.py reads this file,
-# inserts rows into the Supabase `feeds` table, then resets this file
-# to the template below. export_feeds_txt.py then regenerates feeds.txt
-# from the DB. Do not edit feeds.txt manually.
+# Registration: process_pending_feeds.py inserts each entry into the
+# Supabase `feeds` table with status `pending`, then resets this file.
+# A maintainer must explicitly approve and activate a source before any
+# collector may use it. Do not edit generated feeds.txt manually.
 # Think of this file as a temporary inbox for new sources, not as a
 # long-term source inventory.
 #
@@ -148,10 +149,9 @@ TEMPLATE = """\
 #
 # --- Scrapers ---
 # Add the name, cmd, and output path. That is the whole job: the build
-# inserts the row into the feeds table (validated at insert time) and
-# the DB-first runner executes it in that same build. The workflow is
-# never edited. Prefer scripts/add_scraper.py, which tests the exact
-# command and writes this entry for you.
+# inserts the candidate into the feeds table (validated at insert time).
+# It is not executed until an authorized maintainer approves and activates
+# the source. Prefer scripts/add_scraper.py to validate the command.
 #
 #   # Source Name
 #   # cmd: python scrapers/example.py --name "Source Name" --output cities/{city}/example.ics

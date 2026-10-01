@@ -104,16 +104,15 @@ build-log error attribution parses.
 **`feeds.txt` is a generated, read-only artifact.** It keeps its two
 sections (direct ICS feeds and scrapers) and exists as a human-readable
 reference for what the database canonically drives — it is never edited
-by hand and never an execution authority. The only executable use is
-the runner's explicit fallback for forks without database credentials:
-fallback use is logged (`[db-first] fallback=feeds.txt reason=...`),
-counted in the audit report (`db_first_fallbacks`), and in `--db-first`
-mode a fallback on a credentialed instance fails the run — the DB was
-not actually driving execution.
+by hand and never an execution authority. The runner never executes from
+`feeds.txt`. If database credentials are missing or the source query fails,
+it stops without running scrapers. Likewise, `download_feeds.py` stops
+without querying active database rows; it does not download an unfiltered
+text inventory. This keeps a candidate or paused source from being scanned
+when its approval status is unavailable.
 
 The audit report's per-city `execution` object records the mode
-(`db` / `feeds.txt-fallback` / `workflow`), the row count, and any
-fallback reason.
+(`db` / `unavailable` / `workflow`) and row count.
 
 **The tracked `rss/` directory is CI-owned published state** — GitHub
 Pages serves it as the live feed URLs, and each build's `-latest.xml`

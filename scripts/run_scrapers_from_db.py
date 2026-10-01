@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """Run a city's scrapers from the feeds table (DB-first execution).
 
-The active scraper rows in the ``feeds`` table are the ONLY execution
-set. The tracked ``cities/<city>/feeds.txt`` is a generated, read-only,
-human-readable reference for what the database canonically drives — it
-is never edited by hand and never an execution authority.
-
-Fallback: when database credentials are absent or the query fails (the
-fork-without-credentials case), the runner may parse the tracked
-``feeds.txt`` scraper section instead. Fallback use is loud — logged as
-``[db-first] fallback=feeds.txt reason=...`` and reported — and counts
-as migration debt on the main instance, never silent success.
+Only scraper rows with status ``active`` in the ``feeds`` table may run.
+The tracked ``cities/<city>/feeds.txt`` is a generated, read-only,
+human-readable reference and is never an execution authority. If the
+database cannot provide approval state, the runner stops without executing
+scrapers.
 
 Usage:
     python scripts/run_scrapers_from_db.py --city santarosa
@@ -82,7 +77,7 @@ def query_db_scraper_rows(city: str) -> tuple[list[dict] | None, str | None]:
         f"?select=id,city,url,name,scraper_cmd,status"
         f"&city=eq.{urllib.parse.quote(city)}"
         f"&feed_type=eq.scraper"
-        f"&status=in.(active,pending)"
+        f"&status=eq.active"
         f"&order=name.asc"
     )
     req = urllib.request.Request(
@@ -157,21 +152,21 @@ def parse_feeds_txt_scraper_rows(city: str) -> list[dict]:
 
 
 def load_scraper_rows(city: str) -> tuple[list[dict], dict]:
-    """Load the execution set for a city: DB rows, or loud feeds.txt fallback.
+    """Load active database rows, or return an unavailable state.
 
     Returns (rows, execution_info) where execution_info records the mode
-    and any fallback use for reporting.
+    and whether source state was unavailable.
     """
     rows, error = query_db_scraper_rows(city)
     if rows is not None:
         return rows, {"mode": "db", "fallback_used": False}
 
-    print(f"[db-first] fallback=feeds.txt reason={error}")
-    fallback_rows = parse_feeds_txt_scraper_rows(city)
-    return fallback_rows, {
-        "mode": "feeds.txt-fallback",
-        "fallback_used": True,
-        "fallback_reason": error,
+    print(f"[db-first] collection blocked: {error}")
+    return [], {
+        "mode": "unavailable",
+        "fallback_used": False,
+        "source_state_unavailable": True,
+        "reason": error,
     }
 
 
@@ -226,6 +221,8 @@ def main() -> int:
     rows, execution = load_scraper_rows(args.city)
 
     print(f"[db-first] city={args.city} mode={execution['mode']} rows={len(rows)}")
+    if execution.get("source_state_unavailable"):
+        return 1
     if args.list:
         for row in rows:
             print(f"  {row['name']}: {row['scraper_cmd']}")
@@ -237,10 +234,9 @@ def main() -> int:
 
     failures = run_rows(args.city, rows, args.months)
     print(f"[db-first] city={args.city} ran={len(rows)} failures={failures} "
-          f"fallback_used={execution['fallback_used']}")
-    # Scraper failures do not fail the build (|| true semantics); a
-    # fallback on a credentialed instance is the reportable condition,
-    # surfaced via the printed telemetry and local_build's report.
+          f"source_state_unavailable={execution.get('source_state_unavailable', False)}")
+    # Preserve inherited || true semantics for individual scraper failures;
+    # an unavailable approval database is handled above as a hard stop.
     return 0
 
 
