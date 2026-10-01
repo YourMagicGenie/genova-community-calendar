@@ -1,6 +1,7 @@
 """Regression tests for the source approval boundary."""
 
 import json
+import io
 import os
 import sys
 import tempfile
@@ -32,14 +33,43 @@ class SourceApprovalTests(unittest.TestCase):
             def __exit__(self, *args): return False
 
         def fake_urlopen(request):
-            captured.append(json.loads(request.data.decode()))
+            captured.append((request.full_url.rsplit("/", 1)[-1], json.loads(request.data.decode())))
             return Response()
 
         with patch.object(process_pending_feeds.urllib.request, "urlopen", fake_urlopen):
             result = process_pending_feeds.insert_feeds("genova", feeds, "https://db.invalid", "key")
 
         self.assertEqual(result, (2, 0, 0))
-        self.assertEqual([row["status"] for row in captured], ["pending", "pending"])
+        feed_rows = [row for table, row in captured if table == "feeds"]
+        review_rows = [row for table, row in captured if table == "feed_source_reviews"]
+        self.assertEqual([row["status"] for row in feed_rows], ["pending", "pending"])
+        self.assertEqual([row["discovery_method"] for row in feed_rows], ["scraper", "ics"])
+        self.assertIsNone(feed_rows[0]["publisher_url"])
+        self.assertEqual(feed_rows[1]["publisher_url"], feeds[1]["url"])
+        self.assertEqual([row["genova_fit"] for row in review_rows], ["unknown", "unknown"])
+        self.assertEqual(review_rows[0]["source_provenance"], "submitted through pending_feeds.txt")
+        self.assertIsNone(review_rows[0]["access_notes"])
+
+    def test_review_metadata_failure_is_reported_and_prevents_inbox_reset(self):
+        feed = [{"name": "Candidate feed", "url": "https://example.org/events.ics",
+                 "feed_type": "ics_url", "scraper_cmd": None}]
+
+        class Response:
+            status = 201
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+
+        def fake_urlopen(request):
+            if request.full_url.endswith("/feed_source_reviews"):
+                raise process_pending_feeds.urllib.error.HTTPError(
+                    request.full_url, 500, "metadata unavailable", {}, io.BytesIO(b"unavailable")
+                )
+            return Response()
+
+        with patch.object(process_pending_feeds.urllib.request, "urlopen", fake_urlopen):
+            result = process_pending_feeds.insert_feeds("genova", feed, "https://db.invalid", "key")
+
+        self.assertEqual(result, (1, 0, 1))
 
     def test_ics_downloader_refuses_unfiltered_text_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:

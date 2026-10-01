@@ -75,7 +75,7 @@ def parse_pending_feeds(path):
 
 
 def insert_feeds(city, feeds, supabase_url, service_key):
-    """Insert feeds into the feeds table. Returns (inserted, skipped, errors)."""
+    """Insert pending sources and their private review metadata."""
     inserted = 0
     skipped = 0
     errors = 0
@@ -89,30 +89,20 @@ def insert_feeds(city, feeds, supabase_url, service_key):
             # Registering a candidate never grants permission to collect it.
             # An authorized maintainer must explicitly approve and activate it.
             "status": "pending",
+            "publisher_url": feed["url"] if feed["feed_type"] == "ics_url" else None,
+            "discovery_method": "ics" if feed["feed_type"] == "ics_url" else "scraper",
         }
         if feed["scraper_cmd"]:
             row["scraper_cmd"] = feed["scraper_cmd"]
 
-        data = json.dumps(row).encode()
-        req = urllib.request.Request(
-            f"{supabase_url}/rest/v1/feeds",
-            data=data,
-            headers={
-                "apikey": service_key,
-                "Authorization": f"Bearer {service_key}",
-                "Content-Type": "application/json",
-                "Prefer": "resolution=ignore-duplicates,return=minimal",
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(req) as resp:
-                if resp.status == 201:
-                    inserted += 1
-                    print(f"  + {feed['name']}")
-                else:
-                    skipped += 1
-                    print(f"  = {feed['name']} (already exists)")
+            status = post_candidate_row("feeds", row, supabase_url, service_key)
+            if status == 201:
+                inserted += 1
+                print(f"  + {feed['name']}")
+            else:
+                skipped += 1
+                print(f"  = {feed['name']} (already exists)")
         except urllib.error.HTTPError as e:
             body = e.read().decode()
             if "duplicate" in body.lower() or e.code == 409:
@@ -121,8 +111,40 @@ def insert_feeds(city, feeds, supabase_url, service_key):
             else:
                 errors += 1
                 print(f"  ! {feed['name']}: {e.code} {body}")
+                continue
+
+        review = {
+            "city": city,
+            "feed_url": feed["url"],
+            "source_provenance": "submitted through pending_feeds.txt",
+            "access_notes": None,
+            "genova_fit": "unknown",
+            "discovery_reason": "Candidate registration; verify geography, public access, and source terms before approval.",
+        }
+        try:
+            post_candidate_row("feed_source_reviews", review, supabase_url, service_key)
+        except urllib.error.HTTPError as e:
+            errors += 1
+            print(f"  ! {feed['name']} review metadata: {e.code} {e.read().decode()}")
 
     return inserted, skipped, errors
+
+
+def post_candidate_row(table, row, supabase_url, service_key):
+    """Insert a row without overwriting an existing maintainer review."""
+    req = urllib.request.Request(
+        f"{supabase_url}/rest/v1/{table}",
+        data=json.dumps(row).encode(),
+        headers={
+            "apikey": service_key,
+            "Authorization": f"Bearer {service_key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=ignore-duplicates,return=minimal",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req) as resp:
+        return resp.status
 
 
 TEMPLATE = """\
