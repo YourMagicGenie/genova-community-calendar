@@ -74,6 +74,9 @@ under issue #5; that agent does not exist merely because this file exists.
   each PR a focused goal, acceptance criteria, and an honest test summary.
   Use GitHub Issues and PRs as the review record; no Worklist file or Bram
   approval service is part of this fork's current setup.
+- Add one short `CHANGELOG.md` entry for every PR with a reader or maintainer
+  impact. If a PR needs no entry, explain why in its description. The changelog
+  summarizes merged progress; Git history retains exact technical details.
 - For source changes, document publisher URL, method, access conditions,
   attribution, geography, expected event types, and approval state. Keep a
   candidate separate from an active source. Test with fixtures and a dry run
