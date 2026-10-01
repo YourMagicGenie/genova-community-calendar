@@ -1,9 +1,7 @@
-# Development dependencies
-# Install with: pip install -r requirements-dev.txt
-
-# Testing
-pytest>=7.0.0
-pytest-cov>=4.0.0
+# Development dependencies (Python 3.12; exact direct pins)
+# Install with: python -m pip install -r requirements-dev.txt
+pytest==9.1.1
+pytest-cov==7.1.0
 
 # Include production requirements
 -r requirements.txt
