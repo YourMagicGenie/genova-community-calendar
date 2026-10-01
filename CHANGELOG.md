@@ -4,6 +4,10 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Clarified that a small facts-only pilot may test public event listings with original short summaries and direct source links, while cover-image reuse remains a separate rights check (issue #5).
+
+- 2026-10-01 — Added preliminary rights and reuse findings to the Genova source audit; the candidate pages remain pending and none has confirmed scan permission or a usable feed/API (issue #5).
+
 - 2026-10-01 — Recorded an initial five-source Genova candidate audit with observed coverage, duplication/geography risks, and access checks still required; none is approved or active (issue #5).
 
 - 2026-10-01 — Added the dedicated event-agent operating contract for Genova source discovery, approval boundaries, event fields, categories, confidence, and cost limits; no agent or scanning workflow is enabled yet (issue #5).
