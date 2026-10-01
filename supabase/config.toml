@@ -4,6 +4,13 @@
 # working directory name when running `supabase init`.
 project_id = "main"
 
+# load-events authenticates trusted collectors with LOAD_EVENTS_TOKEN in code.
+# It does not receive a Supabase user JWT, so disable the gateway JWT check for
+# this endpoint alone. The function must reject requests before using the
+# service-role key.
+[functions.load-events]
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.

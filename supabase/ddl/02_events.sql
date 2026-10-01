@@ -47,6 +47,13 @@ BEGIN
 END;
 $$;
 
+-- This SECURITY DEFINER function is an internal writer operation, not a
+-- public RPC. Only the trusted service-role Edge Function may invoke it.
+REVOKE EXECUTE ON FUNCTION public.delete_stale_events(text, text[])
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_stale_events(text, text[])
+  TO service_role;
+
 -- Unique index on source_uid for deduplication
 CREATE UNIQUE INDEX IF NOT EXISTS events_source_uid_unique ON events (source_uid);
 

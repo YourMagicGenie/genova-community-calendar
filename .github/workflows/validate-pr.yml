@@ -63,3 +63,6 @@ jobs:
 
       - name: Run Genova sample preview tests
         run: node --test tests/sample-preview.test.js
+
+      - name: Run load-events authorization tests
+        run: node --test tests/load-events-protection.test.mjs

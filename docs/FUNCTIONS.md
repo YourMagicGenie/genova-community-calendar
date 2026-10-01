@@ -14,7 +14,7 @@ This project uses both Postgres functions (PL/pgSQL or SQL, running inside the d
 
 ## Edge Functions in This Project
 
-- `load-events` — accepts direct POST from CI or fetches from GitHub (fallback); upserts events into Supabase
+- `load-events` — accepts a server-authorized Genova POST or fetches the Genova fixture from this fork; upserts only Genova events into Supabase after validating the payload
 - `capture-event` — calls Claude API to extract event data from images or audio; supports Whisper transcription for audio
 - `my-picks` — generates ICS/JSON feed of a user's bookmarked events (token-based auth)
 - `validate-feed` — validates an ICS feed URL, returns preview of future events, detects RRULE recurrence

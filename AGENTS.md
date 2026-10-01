@@ -86,7 +86,9 @@ under issue #5; that agent does not exist merely because this file exists.
   candidate separate from an active source. Test with fixtures and a dry run
   before connecting real credentials or publishing real events.
 - For the sample page, run `node --test tests/sample-preview.test.js`. For
-  pipeline changes, run the relevant Python tests (`pytest tests/ -v`) and
+  Edge Function authorization changes, run
+  `node --test tests/load-events-protection.test.mjs`. For pipeline changes,
+  run the relevant Python tests (`pytest tests/ -v`) and
   feed validation. For database changes, use local Supabase and
   `supabase test db supabase/tests/`. The PR workflow also runs a benchmark.
   Report checks that could not run; a missing check is not a pass.
