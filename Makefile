@@ -17,7 +17,7 @@ help:
 	@echo "  make clean          - Clean test artifacts"
 	@echo ""
 	@echo "Prerequisites:"
-	@echo "  - Python 3.10+ (run 'make setup-python' for venv)"
+	@echo "  - Python 3.12 (run 'make setup-python' for venv)"
 	@echo "  - Supabase CLI installed (for database tests)"
 	@echo "  - PostgreSQL client (psql) for local database access"
 
@@ -29,12 +29,12 @@ test-all: test
 
 # Setup Python environment
 setup-python:
-	@echo "Setting up Python virtual environment..."
-	@if [ ! -d .venv ]; then \
+	@echo "Setting up Python 3.12 virtual environment..."
+	@if [ -f .venv/bin/python ]; then \
+		.venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12), "Delete the old .venv and rerun make setup-python with Python 3.12"'; \
+	else \
 		python3.12 -m venv .venv; \
 		echo "✓ Created .venv with Python 3.12"; \
-	else \
-		echo "✓ .venv already exists"; \
 	fi
 	@echo "Installing dependencies..."
 	.venv/bin/pip install -q -r requirements-dev.txt
@@ -49,11 +49,9 @@ test-python:
 		.venv/bin/pytest tests/ -v; \
 	elif $(PYTHON) -m pytest --version > /dev/null 2>&1; then \
 		$(PYTHON) -m pytest tests/ -v; \
-	elif command -v pytest > /dev/null 2>&1; then \
-		pytest tests/ -v; \
 	else \
 		echo "ERROR: pytest not found."; \
-		echo "Install with: pip install pytest"; \
+		echo "Install with: python3.12 -m pip install -r requirements-dev.txt"; \
 		echo "Or run: make setup-python"; \
 		exit 1; \
 	fi
