@@ -4,6 +4,7 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Retired the inherited all-city daily publisher in favor of a Genova-only manual dry run with no writes or external service calls ([issue #10](https://github.com/YourMagicGenie/genova-community-calendar/issues/10)).
 - 2026-10-01 — Fixed the report schema link and added a PR check for broken local Markdown links ([issue #21](https://github.com/YourMagicGenie/genova-community-calendar/issues/21)).
 - 2026-10-01 — Started this changelog and added a pull request prompt to keep it current ([issue #22](https://github.com/YourMagicGenie/genova-community-calendar/issues/22)).
 - 2026-10-01 — Replaced inherited multi-city agent instructions with Genova-specific guidance; the event-curation agent itself remains future work ([PR #9](https://github.com/YourMagicGenie/genova-community-calendar/pull/9)).
