@@ -59,9 +59,11 @@ separate credentials described below; the fixture command does not.
 
 Production and development direct dependencies are exactly pinned in
 `requirements.txt` and `requirements-dev.txt`. Dependabot opens weekly
-update pull requests for Python packages and GitHub Actions. Review package
-release notes and security advisories, then rely on the Python, fixture,
-database, feed, and browser checks before merging an update. These checks
+update pull requests for Python packages and GitHub Actions. The PR checks
+run `pip-audit` against the pinned production and development dependencies,
+then run the fixture, Python, database, feed, browser, and performance checks.
+Review package release notes and security advisories before merging an update.
+These checks reduce update risk; they do not authorize enabling daily collection. These checks
 reduce update risk; they do not authorize enabling daily collection.
 
 ## Usage
