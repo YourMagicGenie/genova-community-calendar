@@ -47,6 +47,7 @@ class FakeElement {
 
 class FakeDocument {
   createElement(tagName) { return new FakeElement(tagName); }
+  createTextNode(text) { const node = new FakeElement('#text'); node.textContent = text; return node; }
 }
 
 test('sample preview route is the default and only serves Genova', () => {
@@ -109,7 +110,8 @@ test('sample page includes month navigation, a calendar grid and category checkb
   assert.match(html, /id="next-month"/);
   assert.match(html, /id="current-month"/);
   assert.match(html, /id="calendar-grid"/);
-  assert.match(html, /type="checkbox"[^>]+name="category-filter"/);
+  assert.match(html, /id="category-filter-options"/);
+  assert.match(readFileSync(new URL('../xmlui/sample-preview.js', `file://${__filename}`), 'utf8'), /buildCategoryFilters\(document, categoryFilterContainer/);
 });
 
 test('fixture validation requires source attribution and safe example links', () => {
@@ -123,6 +125,51 @@ test('fixture validation requires source attribution and safe example links', ()
     () => api.validateSampleEvents([event({ sourceName: '' })]),
     /sourceName/,
   );
+  assert.throws(
+    () => api.validateSampleEvents([event({ tags: ['date-night-category'] })]),
+    /invalid tags/,
+  );
+});
+
+test('preview categories and labels come from the shared Genova taxonomy', () => {
+  const taxonomy = JSON.parse(readFileSync(new URL('../genova-taxonomy.json', `file://${__filename}`), 'utf8'));
+  const api = requirePreview();
+  const keys = taxonomy.categories.map((category) => category.key);
+  assert.deepEqual([...api.categoryKeys()].sort(), [...keys].sort());
+  for (const category of taxonomy.categories) {
+    assert.equal(api.CATEGORY_LABELS[category.key], category.label);
+  }
+  assert.equal(taxonomy.tags.find((tag) => tag.key === 'date-night').label, 'Date night');
+  assert.equal(keys.includes('date-night'), false);
+  const container = new FakeElement('div');
+  api.buildCategoryFilters(new FakeDocument(), container);
+  assert.equal(container.children.length, taxonomy.categories.length);
+  assert.deepEqual(container.children.map((label) => label.children[1].textContent), taxonomy.categories.map((category) => category.label));
+});
+
+test('browser preview loads the shared taxonomy JSON before building filters', async () => {
+  const source = readFileSync(new URL('../xmlui/sample-preview.js', `file://${__filename}`), 'utf8');
+  const taxonomy = JSON.parse(readFileSync(new URL('../genova-taxonomy.json', `file://${__filename}`), 'utf8'));
+  const browserWindow = {};
+  vm.runInNewContext(source, { window: browserWindow, URL, Set, Object, Array, Promise, Intl, Date });
+  let requestedPath = '';
+
+  await browserWindow.GenovaSamplePreview.loadTaxonomy(async (path) => {
+    requestedPath = path;
+    return { ok: true, json: async () => taxonomy };
+  });
+
+  assert.equal(requestedPath, '../genova-taxonomy.json');
+  assert.deepEqual([...browserWindow.GenovaSamplePreview.categoryKeys()], taxonomy.categories.map((category) => category.key));
+});
+
+test('sample fixture includes all categories and retains multi-category events', () => {
+  const taxonomy = JSON.parse(readFileSync(new URL('../genova-taxonomy.json', `file://${__filename}`), 'utf8'));
+  const events = JSON.parse(readFileSync(new URL('../xmlui/sample-events.json', `file://${__filename}`), 'utf8'));
+  const eventCategories = new Set(events.flatMap((item) => item.categories || [item.category]));
+  assert.deepEqual([...eventCategories].sort(), taxonomy.categories.map((category) => category.key).sort());
+  assert.ok(events.some((item) => (item.categories || []).length > 1));
+  assert.ok(events.some((item) => item.tags.includes('date-night')));
 });
 
 test('time filters use Europe/Rome calendar dates and retain unknown times as unknown', () => {
@@ -130,7 +177,7 @@ test('time filters use Europe/Rome calendar dates and retain unknown times as un
   const now = new Date('2026-09-29T07:00:00.000Z');
   const events = [
     event({ id: 'weekday', daysFromToday: 1, startTime: null }),
-    event({ id: 'saturday', daysFromToday: 4, category: 'art' }),
+    event({ id: 'saturday', daysFromToday: 4, category: 'art-exhibitions' }),
     event({ id: 'outside-window', daysFromToday: 10 }),
     event({ id: 'next-weekend', daysFromToday: 11 }),
   ];
@@ -144,7 +191,7 @@ test('time filters use Europe/Rome calendar dates and retain unknown times as un
   assert.equal(weekend[0].date, '2026-10-03');
 
   const artThisWeek = api.filterSampleEvents(events, {
-    category: 'art',
+    category: 'art-exhibitions',
     dateWindow: 'week',
     now,
   });
@@ -166,9 +213,9 @@ test('event renderer shows source, category and unknown time without inventing a
   const status = new FakeElement('p');
   const now = new Date('2026-09-29T07:00:00.000Z');
   const visible = api.renderSampleEvents(new FakeDocument(), list, status, [
-    event({ id: 'art', category: 'art', startTime: null }),
+    event({ id: 'art-exhibitions', category: 'art-exhibitions', startTime: null }),
     event({ id: 'music', category: 'music' }),
-  ], { category: 'art', dateWindow: 'all', now });
+  ], { category: 'art-exhibitions', dateWindow: 'all', now });
 
   assert.equal(visible.length, 1);
   assert.equal(status.textContent, '1 sample event');
@@ -195,11 +242,11 @@ test('month calendar starts weeks on Monday and includes dates from adjacent mon
 test('calendar filters include multi-category events when any selected category matches', () => {
   const api = requirePreview();
   const events = [
-    event({ id: 'mixed', category: 'music', categories: ['music', 'art'], daysFromToday: 4 }),
+    event({ id: 'mixed', category: 'music', categories: ['music', 'art-exhibitions'], daysFromToday: 4 }),
     event({ id: 'sports', category: 'sports', categories: ['sports'], daysFromToday: 4 }),
   ];
   const visible = api.filterCalendarEvents(events, {
-    selectedCategories: ['art'],
+    selectedCategories: ['art-exhibitions'],
     monthOffset: 0,
     now: new Date('2026-09-29T07:00:00.000Z'),
   });
@@ -270,7 +317,7 @@ test('calendar clearly reports when active filters match no sample events', () =
   const status = new FakeElement('p');
   api.renderCalendar(new FakeDocument(), grid, status, [event({ category: 'music', daysFromToday: 4 })], {
     now: new Date('2026-09-29T07:00:00.000Z'),
-    selectedCategories: ['art'],
+    selectedCategories: ['art-exhibitions'],
   });
 
   assert.equal(status.textContent, 'No sample events match these filters.');

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "classification_review_threshold": 0.75,
+  "categories": [
+    { "key": "music", "label": "Music", "inherited_labels": ["Music / Concerts"] },
+    { "key": "theatre-performance", "label": "Theatre & performance", "inherited_labels": ["Comedy / Improv", "Dance / Performance"] },
+    { "key": "art-exhibitions", "label": "Art & exhibitions", "inherited_labels": ["Arts / Culture", "Craft / Maker", "Film / Cinema"] },
+    { "key": "sports", "label": "Sports & fitness", "inherited_labels": ["Sports / Fitness"] },
+    { "key": "food-drink", "label": "Food & drink", "inherited_labels": ["Food / Drink"] },
+    { "key": "festivals-markets", "label": "Festivals & markets", "inherited_labels": ["Craft / Maker"] },
+    { "key": "talks-workshops", "label": "Talks & workshops", "inherited_labels": ["Books / Literature / Poetry", "Education / Workshops", "History / Heritage", "Technology / Careers"] },
+    { "key": "family", "label": "Family & kids", "inherited_labels": ["Family / Kids", "Schools / K-12"] },
+    { "key": "outdoors-tours", "label": "Outdoor & tours", "inherited_labels": ["Gardening / Horticulture", "Nature / Outdoors / Recreation"] },
+    { "key": "community-social", "label": "Community & social", "inherited_labels": ["Community / Social", "Games / Trivia", "Health / Wellness", "LGBTQ+ / Gender", "Religion / Spirituality"] }
+  ],
+  "tags": [
+    { "key": "date-night", "label": "Date night" }
+  ],
+  "excluded_inherited_labels": ["Government / Civic"]
+}

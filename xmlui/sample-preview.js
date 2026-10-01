@@ -1,19 +1,65 @@
 (function attachSamplePreview(root, factory) {
-  const api = factory();
+  const taxonomy = typeof module === 'object' && module.exports ? require('../genova-taxonomy.json') : null;
+  const api = factory(taxonomy);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.GenovaSamplePreview = api;
-})(typeof window === 'undefined' ? globalThis : window, function createSamplePreview() {
+})(typeof window === 'undefined' ? globalThis : window, function createSamplePreview(initialTaxonomy) {
   const TIME_ZONE = 'Europe/Rome';
-  const CATEGORIES = new Set(['music', 'theatre', 'art', 'sports', 'food', 'outdoors', 'community']);
-  const CATEGORY_LABELS = {
-    music: 'Music',
-    theatre: 'Theatre',
-    art: 'Art & exhibitions',
-    sports: 'Sports',
-    food: 'Food & drink',
-    outdoors: 'Outdoor',
-    community: 'Community',
-  };
+  let taxonomy = initialTaxonomy;
+
+  function validateTaxonomy(value) {
+    if (!value || !Array.isArray(value.categories) || !Array.isArray(value.tags)) {
+      throw new Error('Genova category settings could not be loaded.');
+    }
+    const keys = value.categories.map((category) => category.key);
+    if (keys.some((key) => typeof key !== 'string' || !key.trim()) || new Set(keys).size !== keys.length) {
+      throw new Error('Genova category settings could not be loaded.');
+    }
+    if (value.tags.some((tag) => keys.includes(tag.key))) {
+      throw new Error('Genova category settings could not be loaded.');
+    }
+    return value;
+  }
+
+  function categoryKeys() {
+    return taxonomy.categories.map((category) => category.key);
+  }
+
+  function categoryLabels() {
+    return Object.fromEntries(taxonomy.categories.map((category) => [category.key, category.label]));
+  }
+
+  function tagLabel(key) {
+    return taxonomy.tags.find((tag) => tag.key === key)?.label || key;
+  }
+
+  async function loadTaxonomy(fetcher = globalThis.fetch) {
+    if (taxonomy) return validateTaxonomy(taxonomy);
+    try {
+      const response = await fetcher('../genova-taxonomy.json', { cache: 'no-store' });
+      if (!response || !response.ok) throw new Error('Taxonomy request failed.');
+      taxonomy = validateTaxonomy(await response.json());
+      return taxonomy;
+    } catch (_) {
+      throw new Error('Genova category settings could not be loaded. Reload the preview or report the broken category file.');
+    }
+  }
+
+  function buildCategoryFilters(document, container, selectedKeys = categoryKeys()) {
+    const selected = new Set(selectedKeys);
+    const labels = taxonomy.categories.map((category) => {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'category-filter';
+      input.value = category.key;
+      input.checked = selected.has(category.key);
+      label.append(input, document.createTextNode(category.label));
+      return label;
+    });
+    container.replaceChildren(...labels);
+    return labels;
+  }
 
   function matchesSampleRoute(value) {
     const url = value instanceof URL ? value : new URL(value, 'https://calendar.example/');
@@ -28,8 +74,10 @@
     return [...new Set(values)];
   }
 
-  function validateSampleEvents(events) {
+  function validateSampleEvents(events, categoryTaxonomy = taxonomy) {
     if (!Array.isArray(events)) throw new Error('Sample events must be a list.');
+    const validCategories = new Set(validateTaxonomy(categoryTaxonomy).categories.map((category) => category.key));
+    const validTags = new Set(categoryTaxonomy.tags.map((tag) => tag.key));
 
     for (const [index, event] of events.entries()) {
       const prefix = `Sample event ${index + 1}`;
@@ -38,7 +86,7 @@
           throw new Error(`${prefix} is missing ${field}.`);
         }
       }
-      if (categoriesFor(event).some((category) => !CATEGORIES.has(category))) {
+      if (categoriesFor(event).some((category) => !validCategories.has(category))) {
         throw new Error(`${prefix} has an unknown category.`);
       }
       if (!Number.isInteger(event.daysFromToday) || event.daysFromToday < 0 || event.daysFromToday > 60) {
@@ -47,7 +95,7 @@
       if (event.startTime !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(event.startTime)) {
         throw new Error(`${prefix} has an invalid startTime; use null when the time is unknown.`);
       }
-      if (!Array.isArray(event.tags) || event.tags.some((tag) => typeof tag !== 'string')) {
+      if (!Array.isArray(event.tags) || event.tags.some((tag) => !validTags.has(tag))) {
         throw new Error(`${prefix} has invalid tags.`);
       }
 
@@ -64,12 +112,12 @@
     return events;
   }
 
-  async function loadSampleEvents(fetcher) {
+  async function loadSampleEvents(fetcher, categoryTaxonomy = taxonomy) {
     if (typeof fetcher !== 'function') throw new Error('Sample events could not be loaded.');
     try {
       const response = await fetcher('sample-events.json', { cache: 'no-store' });
       if (!response || !response.ok) throw new Error('Fixture request failed.');
-      return validateSampleEvents(await response.json());
+      return validateSampleEvents(await response.json(), categoryTaxonomy);
     } catch (_) {
       throw new Error('Sample events could not be loaded. Reload the preview or report the broken sample file.');
     }
@@ -169,7 +217,7 @@
     const monthOffset = options.monthOffset || 0;
     const timeZone = options.timeZone || TIME_ZONE;
     const selectedCategories = options.selectedCategories === undefined
-      ? [...CATEGORIES]
+      ? categoryKeys()
       : options.selectedCategories;
     const selected = new Set(selectedCategories);
     const cells = calendarMonthCells(now, monthOffset, timeZone);
@@ -197,13 +245,13 @@
     for (const value of categoriesFor(event)) {
       const category = document.createElement('span');
       category.className = 'tag';
-      category.textContent = CATEGORY_LABELS[value];
+      category.textContent = categoryLabels()[value];
       container.append(category);
     }
     if (event.tags.includes('date-night')) {
       const dateNight = document.createElement('span');
       dateNight.className = 'tag tag-accent';
-      dateNight.textContent = 'Date night';
+      dateNight.textContent = tagLabel('date-night');
       container.append(dateNight);
     }
   }
@@ -260,8 +308,8 @@
     item.append(link, source);
     const tags = document.createElement('span');
     tags.className = 'calendar-event-categories';
-    tags.textContent = categoriesFor(event).map((value) => CATEGORY_LABELS[value]).join(' · ');
-    if (event.tags.includes('date-night')) tags.textContent += ' · Date night';
+    tags.textContent = categoriesFor(event).map((value) => categoryLabels()[value]).join(' · ');
+    if (event.tags.includes('date-night')) tags.textContent += ` · ${tagLabel('date-night')}`;
     item.append(tags);
     return item;
   }
@@ -344,15 +392,19 @@
     const grid = document.querySelector('#calendar-grid');
     const status = document.querySelector('#calendar-status');
     const monthTitle = document.querySelector('#calendar-month');
-    const categoryFilters = [...document.querySelectorAll('input[name="category-filter"]')];
     const dateNightFilter = document.querySelector('#date-night-filter');
     const previousMonth = document.querySelector('#previous-month');
     const nextMonth = document.querySelector('#next-month');
     const currentMonth = document.querySelector('#current-month');
+    const categoryFilterContainer = document.querySelector('#category-filter-options');
     let monthOffset = 0;
 
     try {
-      const events = await loadSampleEvents(fetcher);
+      const categoryTaxonomy = await loadTaxonomy(fetcher);
+      buildCategoryFilters(document, categoryFilterContainer, categoryTaxonomy.categories.map((category) => category.key));
+      dateNightFilter.textContent = tagLabel('date-night');
+      const events = await loadSampleEvents(fetcher, categoryTaxonomy);
+      const categoryFilters = [...document.querySelectorAll('input[name="category-filter"]')];
       function render() {
         const now = new Date();
         monthTitle.textContent = calendarMonthInfo(now, monthOffset).label;
@@ -380,16 +432,19 @@
   }
 
   return {
-    CATEGORY_LABELS,
     TIME_ZONE,
+    buildCategoryFilters,
     calendarMonthCells,
     calendarMonthInfo,
     categoriesFor,
+    categoryKeys,
+    get CATEGORY_LABELS() { return categoryLabels(); },
     dateAtOffset,
     filterCalendarEvents,
     filterSampleEvents,
     formatDate,
     loadSampleEvents,
+    loadTaxonomy,
     matchesSampleRoute,
     renderCalendar,
     renderSampleEvents,
