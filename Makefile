@@ -1,7 +1,7 @@
 .PHONY: help test test-python test-sql test-all setup-local setup-python teardown-local clean
 
 # Detect Python in venv or system
-PYTHON := $(shell if [ -f .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
+PYTHON := $(shell if [ -f .venv/bin/python ]; then echo .venv/bin/python; else echo python3.12; fi)
 
 # Default target
 help:
@@ -31,8 +31,8 @@ test-all: test
 setup-python:
 	@echo "Setting up Python virtual environment..."
 	@if [ ! -d .venv ]; then \
-		python3 -m venv .venv; \
-		echo "✓ Created .venv"; \
+		python3.12 -m venv .venv; \
+		echo "✓ Created .venv with Python 3.12"; \
 	else \
 		echo "✓ .venv already exists"; \
 	fi
