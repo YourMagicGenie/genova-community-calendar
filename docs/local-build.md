@@ -18,7 +18,7 @@ or refresh Supabase-side materialized state.
 
 ## Prerequisites
 
-- `python3`
+- Python 3.12.x (`python3.12`) for the inherited pipeline and test suite
 - project dependencies already installed (`pip install -r requirements.txt`)
 - optional but recommended for DB-backed comparison/export:
   - `SUPABASE_URL`
@@ -31,17 +31,38 @@ tracked `feeds.txt` files and cannot report DB/workflow drift.
 The runner auto-loads a repo-local `.env` file if present, without overriding
 already-exported variables.
 
-For close GitHub parity, use the same runtime family as the workflow:
+## Supported runtime and setup
 
-- GitHub Actions runs `python-version: 3.10`
-- the repo currently pins `lxml==4.9.1`
-- that `lxml` pin does not build cleanly on Python 3.13/3.14, so a modern
-  Homebrew `python3` can produce unavoidable local drift before the build even
-  starts
+Use the Python 3.12 release series for pipeline work and local tests. The
+`.python-version` file, GitHub Actions, and `make setup-python` all select
+Python 3.12. GitHub Actions and local installations should use the latest
+available 3.12 patch release.
 
-If you need local-vs-GitHub reconciliation, treat Python 3.10 plus a clean
-`pip install -r requirements.txt` environment as part of the test setup, not
-as an optional nice-to-have.
+Create an isolated environment and install the exact direct dependency pins:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+```
+
+The no-network fixture pipeline reads checked-in ICS files and exercises the
+calendar parser and recurrence handling:
+
+```bash
+python -m pytest tests/test_timezone_pipeline.py::TestRealIcsFiles -v
+```
+
+Run the full Python test suite with `python -m pytest tests/ -v`. Live
+scraper/local-build commands may access external websites and require the
+separate credentials described below; the fixture command does not.
+
+Production and development direct dependencies are exactly pinned in
+`requirements.txt` and `requirements-dev.txt`. Dependabot opens weekly
+update pull requests for Python packages and GitHub Actions. Review package
+release notes and security advisories, then rely on the Python, fixture,
+database, feed, and browser checks before merging an update. These checks
+reduce update risk; they do not authorize enabling daily collection.
 
 ## Usage
 
