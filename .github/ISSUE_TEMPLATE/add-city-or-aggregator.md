@@ -1,8 +1,22 @@
 ---
-name: Add a city or flag an aggregator
-about: Add your city to the community calendar
-title: "Add city: NAME with aggregators: "
-labels: city-request
+name: Discuss expanding beyond Genova
+about: Propose an area in Liguria for a future project scope discussion
+title: "Scope discussion: AREA NAME"
 ---
 
-Just edit the title! Replace NAME with your city, and list any aggregators (newspapers, regional event platforms) after "aggregators:". If you're not sure what counts as an aggregator, just leave it blank and we'll help you figure it out.
+The calendar is currently scoped to Genova. Use this form only to discuss a
+possible future expansion within Liguria. Submitting a request does not change
+the project area or activate collection there.
+
+**Area you want to discuss:**
+
+**Why would people using the Genova calendar need events from this area?**
+
+**Examples of public local publishers or event sources there:**
+
+**Geographic boundary you have in mind:**
+
+**Anything else to consider before changing the scope:**
+
+The maintainer will decide whether and when to update the project's scope. Any
+sources mentioned here remain unapproved candidates until reviewed separately.
