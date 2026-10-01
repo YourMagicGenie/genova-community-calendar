@@ -68,6 +68,8 @@ The publishable key identifies the *application* (not the user) and provides onl
 | Table | Anonymous access (no login) | Authenticated access (logged-in user) |
 |-------|----------------------------|--------------------------------------|
 | `events` | SELECT (read all) | SELECT (read all) |
+| `feeds` | SELECT active sources only | SELECT active sources; admins can read and manage all source rows |
+| `feed_source_reviews` | None | Admins only |
 | `picks` | None | SELECT/INSERT/DELETE own rows only |
 | `feed_tokens` | None | SELECT/INSERT own row only |
 | `event_enrichments` | SELECT (read all) | SELECT all, INSERT/UPDATE/DELETE own rows only |
@@ -76,6 +78,8 @@ The publishable key identifies the *application* (not the user) and provides onl
 | `admin_github_users` | None | SELECT own GitHub username row only |
 
 So anyone with the publishable key can read events (which is the whole point — it's a public calendar). But only authenticated users can manage their own picks, and RLS ensures they can't see or modify other users' data.
+
+For Genova, candidate source rows and their review notes are private to authenticated admins. See [Genova source review states](../docs/genova-source-review.md).
 
 **What would be dangerous:** The `service_role` key (or `sb_secret_...`) bypasses all RLS. It must never appear in frontend code. Edge functions use it server-side via the `SUPABASE_SERVICE_ROLE_KEY` environment variable, which Supabase injects automatically.
 
