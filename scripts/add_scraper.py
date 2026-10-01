@@ -10,10 +10,10 @@ By default the scraper is tested and then registered. --test runs the
 same validation and shows what would be registered without writing
 anything.
 
-The nightly build's process_pending_feeds step moves the entry into the
-feeds table (validated at insert time), and the DB-first runner executes
-active scraper rows the same build — the workflow itself carries no
-per-scraper lines and is never edited.
+The registration step moves the entry into the feeds table with status
+pending (validated at insert time). A maintainer must explicitly approve
+and activate it before the DB-first runner may execute it. The workflow
+itself carries no per-scraper lines and is never edited.
 
 Usage:
     python scripts/add_scraper.py sportsbasement santarosa "Sports Basement"
@@ -193,9 +193,9 @@ Examples:
     print("✅ Done! Next steps:")
     print("  1. Review the entry: git diff cities/{}/pending_feeds.txt".format(args.city))
     print("  2. Commit and push it (or let your usual flow do so)")
-    print("  3. The nightly build registers it in the feeds table and the")
-    print("     DB-first runner starts executing it the same build — the")
-    print("     workflow is never edited")
+    print("  3. Registration stores it as pending in the feeds table")
+    print("  4. A maintainer must approve and activate it before collection")
+    print("     The workflow is never edited")
     print("="*60)
 
 

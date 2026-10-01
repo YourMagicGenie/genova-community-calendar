@@ -598,8 +598,8 @@ def run_city(city: str, logger: BuildLogger, args: argparse.Namespace) -> dict:
     snapshot_rows = [row for row in (db_rows or []) if row["feed_type"] in {"ics_url", "curator", "scraper"} and row["status"] in {"active", "pending"}]
     pending_entries = pending_entries_for_city(city)
 
-    # DB-first mode: the active feeds-table scraper rows are the execution
-    # set (with loud, counted feeds.txt fallback for credential-less forks);
+    # DB-first mode: only active feeds-table scraper rows are eligible. If
+    # the database cannot provide approval state, the runner returns no rows;
     # workflow rows are still parsed for the drift comparison.
     if args.db_first:
         execution_rows, execution_info = load_db_scraper_rows(city)
@@ -1152,8 +1152,8 @@ def main() -> int:
         audit["summary"]["live_feed_missing_outputs"] > 0,
         audit["summary"]["live_feed_not_ics_outputs"] > 0,
         audit["summary"]["build_error_count"] > 0,
-        # In --db-first mode a feeds.txt fallback on a credentialed
-        # instance means the DB was not actually driving execution.
+        # Any legacy fallback telemetry in --db-first mode means the DB was
+        # not actually driving execution. Current runner fails closed instead.
         args.db_first and audit["summary"]["db_first_fallbacks"] > 0,
     ])
     return 1 if has_failures else 0

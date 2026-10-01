@@ -5,7 +5,8 @@ Usage: python scripts/download_feeds.py <city>
 
 Queries the feeds table in Supabase for active ics_url/curator feeds,
 downloads each to an auto-named .ics file in cities/<city>/, and injects
-X-SOURCE headers. Falls back to feeds.txt if SUPABASE_URL is not set.
+X-SOURCE headers. It fails closed when the database cannot provide source
+approval state; feeds.txt is not an execution authority.
 """
 
 import json
@@ -106,7 +107,7 @@ def fetch_feeds_from_db(city: str):
         f"{supabase_url}/rest/v1/feeds"
         f"?select=id,url,name,status,fallback_url"
         f"&city=eq.{city}"
-        f"&status=in.(active,pending)"
+        f"&status=eq.active"
         f"&feed_type=in.(ics_url,curator)"
         f"&order=name.asc"
     )
@@ -123,29 +124,6 @@ def fetch_feeds_from_db(city: str):
         return None
 
     return feeds  # list of dicts with id, url, name, status
-
-
-def mark_feeds_active(feeds_to_activate):
-    """Mark pending feeds as active after successful download."""
-    supabase_url = os.environ.get("SUPABASE_URL")
-    service_key = os.environ.get("SUPABASE_SERVICE_KEY")
-    if not supabase_url or not service_key:
-        return
-    headers = {
-        "apikey": service_key,
-        "Authorization": f"Bearer {service_key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-    for feed in feeds_to_activate:
-        patch_url = f"{supabase_url}/rest/v1/feeds?id=eq.{feed['id']}"
-        data = json.dumps({"status": "active"}).encode()
-        req = urllib.request.Request(patch_url, data=data, headers=headers, method="PATCH")
-        try:
-            urllib.request.urlopen(req)
-            print(f"  ✅ Marked active: {feed['name']}")
-        except urllib.error.URLError as e:
-            print(f"  ⚠️  Failed to mark active: {feed['name']}: {e}")
 
 
 # HACK: browncounty.com's MEC v7.25.0 exports UTC values but labels them with
@@ -194,20 +172,13 @@ def download_feeds(city: str) -> None:
     output_dir = os.path.join("cities", city)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Try DB first, fall back to feeds.txt
+    # The database is the approval authority. Without it, source state is
+    # unknown and collection must stop rather than run an unfiltered list.
     db_feeds = fetch_feeds_from_db(city)
-    if db_feeds is not None:
-        print(f"  Using feeds table ({len(db_feeds)} feeds)")
-        feed_list = [(f["url"], f["name"], f.get("fallback_url")) for f in db_feeds]
-        pending_feeds = [f for f in db_feeds if f.get("status") == "pending"]
-    else:
-        feeds_file = os.path.join("cities", city, "feeds.txt")
-        if not os.path.exists(feeds_file):
-            print(f"No feeds.txt found for {city}")
-            return
-        feed_list = list(parse_feeds_txt(feeds_file))
-        pending_feeds = []
-        print(f"  Using feeds.txt ({len(feed_list)} feeds)")
+    if db_feeds is None:
+        raise RuntimeError("Cannot collect without active source records from the database")
+    print(f"  Using active feeds table ({len(db_feeds)} feeds)")
+    feed_list = [(f["url"], f["name"], f.get("fallback_url")) for f in db_feeds]
 
     count = 0
     for url, friendly_name, fallback_url in feed_list:
@@ -246,13 +217,12 @@ def download_feeds(city: str) -> None:
 
     print(f"Downloaded {count} feeds for {city}")
 
-    # Mark pending feeds as active
-    if pending_feeds:
-        mark_feeds_active(pending_feeds)
-
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python scripts/download_feeds.py <city>", file=sys.stderr)
         sys.exit(1)
-    download_feeds(sys.argv[1])
+    try:
+        download_feeds(sys.argv[1])
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
