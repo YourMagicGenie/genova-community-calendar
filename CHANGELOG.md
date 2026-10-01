@@ -4,6 +4,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Added a headless Chromium smoke test for the Genova sample preview at desktop and phone sizes, covering navigation, category filtering, dense-day expansion, browser errors, and horizontal overflow (issue #16).
+
 - 2026-10-01 — Clarified that a small facts-only pilot may test public event listings with original short summaries and direct source links, while cover-image reuse remains a separate rights check (issue #5).
 
 - 2026-10-01 — Added preliminary rights and reuse findings to the Genova source audit; the candidate pages remain pending and none has confirmed scan permission or a usable feed/API (issue #5).
