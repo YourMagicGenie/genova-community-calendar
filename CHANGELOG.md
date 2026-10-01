@@ -4,6 +4,7 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Added one Genova category list for the sample filters and event-normalization contract; unknown or uncertain labels remain reviewable, and Date night stays a tag (issue #15).
 - 2026-10-01 — Source candidates stay pending until an explicit maintainer approval; collectors only use active database rows and stop safely when approval state is unavailable (issue #13).
 - 2026-10-01 — Removed Bloomington-specific Bram settings and tracked machine-local Claude memory; documented the supported Genova preview path ([issue #17](https://github.com/YourMagicGenie/genova-community-calendar/issues/17)).
 - 2026-10-01 — Replaced inherited upstream onboarding and source request instructions with Genova-specific preview guidance and source review forms ([issue #14](https://github.com/YourMagicGenie/genova-community-calendar/issues/14)).

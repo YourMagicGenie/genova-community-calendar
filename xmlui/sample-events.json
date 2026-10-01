@@ -2,7 +2,7 @@
   {
     "id": "sample-food-workshop",
     "title": "Make fresh pesto together",
-    "category": "food",
+    "category": "food-drink",
     "daysFromToday": 1,
     "startTime": "18:30",
     "venue": "Example neighbourhood kitchen, Genova",
@@ -19,23 +19,27 @@
     "venue": "Example music room, Genova",
     "sourceName": "Example Local Venue",
     "sourceUrl": "https://example.org/genova/jazz",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-gallery-evening",
     "title": "An evening with Ligurian artists",
-    "category": "art",
+    "category": "art-exhibitions",
     "daysFromToday": 4,
     "startTime": null,
     "venue": "Example gallery, Genova",
     "sourceName": "Example Arts Publisher",
     "sourceUrl": "https://example.org/genova/art-evening",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-theatre",
     "title": "A comedy in the old town",
-    "category": "theatre",
+    "category": "theatre-performance",
     "daysFromToday": 5,
     "startTime": "21:00",
     "venue": "Example theatre, Genova",
@@ -57,43 +61,57 @@
   {
     "id": "sample-walk",
     "title": "A coastal walk and aperitivo",
-    "category": "outdoors",
+    "category": "outdoors-tours",
     "daysFromToday": 8,
     "startTime": "16:00",
     "venue": "Example meeting point, Genova",
     "sourceName": "Example Outdoor Group",
     "sourceUrl": "https://example.org/genova/coastal-walk",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-jazz-quartet",
     "title": "Jazz quartet at the old port",
     "category": "music",
-    "categories": ["music", "community"],
+    "categories": [
+      "music",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "18:00",
     "venue": "Example port stage, Genova",
     "sourceName": "Example Music Calendar",
     "sourceUrl": "https://example.org/genova/jazz-quartet",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-acoustic-set",
     "title": "Acoustic songs and sunset views",
     "category": "music",
-    "categories": ["music"],
+    "categories": [
+      "music"
+    ],
     "daysFromToday": 4,
     "startTime": "18:45",
     "venue": "Example seaside terrace, Genova",
     "sourceName": "Example Local Venue",
     "sourceUrl": "https://example.org/genova/acoustic-sunset",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-theatre-improv",
     "title": "Improv comedy in English and Italian",
-    "category": "theatre",
-    "categories": ["theatre", "community"],
+    "category": "theatre-performance",
+    "categories": [
+      "theatre-performance",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "19:00",
     "venue": "Example black box theatre, Genova",
@@ -104,32 +122,44 @@
   {
     "id": "sample-pasta-class",
     "title": "A hands-on Ligurian pasta class",
-    "category": "food",
-    "categories": ["food", "community"],
+    "category": "food-drink",
+    "categories": [
+      "food-drink",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "19:15",
     "venue": "Example cooking studio, Genova",
     "sourceName": "Example Community Kitchen",
     "sourceUrl": "https://example.org/genova/pasta-class",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-gallery-opening",
     "title": "Opening night: new Ligurian art",
-    "category": "art",
-    "categories": ["art", "community"],
+    "category": "art-exhibitions",
+    "categories": [
+      "art-exhibitions",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "19:30",
     "venue": "Example art space, Genova",
     "sourceName": "Example Arts Publisher",
     "sourceUrl": "https://example.org/genova/gallery-opening",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-board-games",
     "title": "Board games for new neighbours",
-    "category": "community",
-    "categories": ["community"],
+    "category": "community-social",
+    "categories": [
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "19:45",
     "venue": "Example community room, Genova",
@@ -140,8 +170,11 @@
   {
     "id": "sample-street-photo-walk",
     "title": "Street photography walk through the caruggi",
-    "category": "art",
-    "categories": ["art", "outdoors"],
+    "category": "art-exhibitions",
+    "categories": [
+      "art-exhibitions",
+      "outdoors-tours"
+    ],
     "daysFromToday": 4,
     "startTime": "20:00",
     "venue": "Example meeting point, Genova",
@@ -153,7 +186,10 @@
     "id": "sample-five-a-side",
     "title": "Friendly five-a-side football",
     "category": "sports",
-    "categories": ["sports", "community"],
+    "categories": [
+      "sports",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "20:15",
     "venue": "Example sports centre, Genova",
@@ -164,20 +200,28 @@
   {
     "id": "sample-film-screening",
     "title": "Outdoor film: stories of the sea",
-    "category": "art",
-    "categories": ["art", "outdoors"],
+    "category": "art-exhibitions",
+    "categories": [
+      "art-exhibitions",
+      "outdoors-tours"
+    ],
     "daysFromToday": 4,
     "startTime": "20:30",
     "venue": "Example courtyard cinema, Genova",
     "sourceName": "Example Film Society",
     "sourceUrl": "https://example.org/genova/sea-film",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-trivia",
     "title": "Pub quiz: Liguria edition",
-    "category": "community",
-    "categories": ["community", "food"],
+    "category": "community-social",
+    "categories": [
+      "community-social",
+      "food-drink"
+    ],
     "daysFromToday": 4,
     "startTime": "20:45",
     "venue": "Example neighbourhood pub, Genova",
@@ -188,20 +232,28 @@
   {
     "id": "sample-dance-class",
     "title": "Beginner salsa social",
-    "category": "community",
-    "categories": ["community", "music"],
+    "category": "community-social",
+    "categories": [
+      "community-social",
+      "music"
+    ],
     "daysFromToday": 4,
     "startTime": "21:00",
     "venue": "Example dance studio, Genova",
     "sourceName": "Example Dance School",
     "sourceUrl": "https://example.org/genova/salsa-social",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-poetry",
     "title": "Open mic poetry and spoken word",
-    "category": "theatre",
-    "categories": ["theatre", "community"],
+    "category": "theatre-performance",
+    "categories": [
+      "theatre-performance",
+      "community-social"
+    ],
     "daysFromToday": 4,
     "startTime": "21:15",
     "venue": "Example bookshop stage, Genova",
@@ -213,7 +265,9 @@
     "id": "sample-basketball",
     "title": "Local basketball derby",
     "category": "sports",
-    "categories": ["sports"],
+    "categories": [
+      "sports"
+    ],
     "daysFromToday": 4,
     "startTime": "21:30",
     "venue": "Example arena, Genova",
@@ -224,25 +278,74 @@
   {
     "id": "sample-aperitivo-walk",
     "title": "Aperitivo walk above the harbour",
-    "category": "outdoors",
-    "categories": ["outdoors", "food"],
+    "category": "outdoors-tours",
+    "categories": [
+      "outdoors-tours",
+      "food-drink"
+    ],
     "daysFromToday": 4,
     "startTime": "21:45",
     "venue": "Example lookout, Genova",
     "sourceName": "Example Walking Group",
     "sourceUrl": "https://example.org/genova/aperitivo-walk",
-    "tags": ["date-night"]
+    "tags": [
+      "date-night"
+    ]
   },
   {
     "id": "sample-improv-late-show",
     "title": "Late-night improv show",
-    "category": "theatre",
-    "categories": ["theatre"],
+    "category": "theatre-performance",
+    "categories": [
+      "theatre-performance"
+    ],
     "daysFromToday": 4,
     "startTime": "22:00",
     "venue": "Example theatre, Genova",
     "sourceName": "Example Theatre Company",
     "sourceUrl": "https://example.org/genova/improv-late-show",
+    "tags": []
+  },
+  {
+    "id": "sample-genova-market",
+    "title": "Example makers and neighbourhood market",
+    "category": "festivals-markets",
+    "categories": [
+      "festivals-markets",
+      "art-exhibitions"
+    ],
+    "daysFromToday": 9,
+    "startTime": "10:00",
+    "venue": "Example market square, Genova",
+    "sourceName": "Example Community Market",
+    "sourceUrl": "https://example.org/genova/market",
+    "tags": []
+  },
+  {
+    "id": "sample-public-talk",
+    "title": "Example talk about the Ligurian coast",
+    "category": "talks-workshops",
+    "daysFromToday": 10,
+    "startTime": "18:00",
+    "venue": "Example local library, Genova",
+    "sourceName": "Example Local Library",
+    "sourceUrl": "https://example.org/genova/coast-talk",
+    "tags": []
+  },
+  {
+    "id": "sample-family-workshop",
+    "title": "Example family art workshop",
+    "category": "family",
+    "categories": [
+      "family",
+      "talks-workshops",
+      "art-exhibitions"
+    ],
+    "daysFromToday": 11,
+    "startTime": "15:00",
+    "venue": "Example family centre, Genova",
+    "sourceName": "Example Family Centre",
+    "sourceUrl": "https://example.org/genova/family-workshop",
     "tags": []
   }
 ]

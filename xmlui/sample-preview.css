@@ -177,7 +177,8 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
   border-top: 1px solid var(--line);
 }
 .category-filters legend { padding: 0 .45rem 0 0; color: var(--muted); font-size: .78rem; font-weight: 750; }
-.category-filters label { display: inline-flex; min-width: 0; grid: none; align-items: center; gap: .35rem; color: var(--ink); font-size: .85rem; cursor: pointer; }
+.category-filter-options { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: .45rem .9rem; }
+.category-filter-options label { display: inline-flex; min-width: 0; grid: none; align-items: center; gap: .35rem; color: var(--ink); font-size: .85rem; cursor: pointer; }
 .category-filters input { width: 1rem; height: 1rem; accent-color: var(--sea); }
 .category-filters .filter-button { min-height: 2rem; margin-left: auto; padding: .3rem .65rem; font-size: .82rem; }
 .category-filters .filter-button[aria-pressed="true"] { border-color: var(--coral); background: #f8e8e2; color: #713c31; }
@@ -222,7 +223,8 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
   .calendar-toolbar h2 { font-size: 1.2rem; }
   .category-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
   .category-filters legend { grid-column: 1 / -1; }
-  .category-filters label { font-size: .82rem; }
+  .category-filter-options { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .category-filter-options label { font-size: .82rem; }
   .category-filters .filter-button { grid-column: 1 / -1; margin-left: 0; }
   .calendar-weekdays { display: none; }
   .calendar-grid { grid-template-columns: 1fr; gap: .55rem; }
