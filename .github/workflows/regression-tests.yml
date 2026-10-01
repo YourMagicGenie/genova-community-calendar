@@ -49,8 +49,13 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: Start app server
-        run: python3 -m http.server 8080 &
+        run: python -m http.server 8080 &
 
       - name: Clone trace-tools
         run: |

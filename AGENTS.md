@@ -88,9 +88,11 @@ under issue #5; that agent does not exist merely because this file exists.
 - For the sample page, run `node --test tests/sample-preview.test.js`. For
   Edge Function authorization changes, run
   `node --test tests/load-events-protection.test.mjs`. For pipeline changes,
-  run the relevant Python tests (`pytest tests/ -v`) and
-  feed validation. For database changes, use local Supabase and
-  `supabase test db supabase/tests/`. The PR workflow also runs a benchmark.
+  use Python 3.12, run the offline ICS fixture test
+  (`pytest tests/test_timezone_pipeline.py::TestRealIcsFiles -v`), the full
+  Python suite (`pytest tests/ -v`), and feed validation. For database changes,
+  use local Supabase and `supabase test db supabase/tests/`. The PR workflow
+  also checks dependency security with `pip-audit` and runs a benchmark.
   Report checks that could not run; a missing check is not a pass.
 - For a visible UI or event-output PR, provide a working preview URL and
   concise phone and laptop review steps. Confirm behavior on the deployed
