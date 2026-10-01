@@ -1,6 +1,6 @@
 # Genova fork readiness audit
 
-**Reviewed:** 2026-09-30  
+**Reviewed:** 2026-09-30; collection workflow status updated 2026-10-01
 **Repository:** [YourMagicGenie/genova-community-calendar](https://github.com/YourMagicGenie/genova-community-calendar)  
 **Project tracker:** [Issue #1](https://github.com/YourMagicGenie/genova-community-calendar/issues/1)
 
@@ -15,17 +15,17 @@ This audit completes the repository and operating-cost review at the start of Is
 | Frontend | XMLUI app under `xmlui/`. Event rows are pushed into the UI by `xmlui/shell.js`; `xmlui/Main.xmlui` displays and filters them. | Preserve the existing UI and give its event loader a safe sample-data mode for review. |
 | Backend | `xmlui/config.json` still points at the upstream Supabase project. No separate Genova backend is configured. | Do not load or write Genova events through that configuration. Create a separate backend only when the real-source vertical slice is ready. |
 | City scope | The inherited source has eight US/Canada city folders and no Genova entry. | Do not activate the inherited all-city job. Configure one Genova city before collection. |
-| Collection jobs | `.github/workflows/generate-calendar.yml` has a nightly schedule and manual dispatch. With no `ENABLED_CITIES` variable, its default is every `cities/*/feeds.txt` folder. The job has write permission and reads Supabase service-key and optional Anthropic/Ticketmaster API variables/secrets. | Keep collection disabled until the Genova source set, backend, scope, and any API spend are approved. Never reuse an upstream service key. |
-| Pull request checks | `.github/workflows/validate-pr.yml` runs Python tests, local Supabase database tests, and a Node performance check. `regression-tests.yml` is manual and expects remote test secrets. No Actions runs are visible yet in the fork. | Public-repository standard GitHub-hosted runners are currently free. Keep PR checks free of production credentials; do not interpret the absence of runs as a successful test. |
+| Collection jobs | The inherited nightly, write-enabled multi-city publisher was retired in issue #10. `.github/workflows/generate-calendar.yml` is now a manual, read-only Genova scope check with no schedule, secrets, source scans, or writes. The owner has kept that workflow disabled in Actions. | A local dry run requires an explicit `genova` scope; actual collection still needs approved sources, a fork-owned backend, access controls, and cost/recovery review. See [Genova collection safety](genova-collection-safety.md). |
+| Pull request checks | `.github/workflows/validate-pr.yml` runs Python tests, local Supabase database tests, a Node performance check, and a Markdown link check. The fork's Actions were enabled and PR #9's three jobs passed; `regression-tests.yml` remains manual. | Keep PR checks free of production credentials and require real passing results before merging. |
 | Hosting and preview | GitHub Pages is now publishing the sample-preview branch; the owner confirmed the preview works on a phone. The local `.bram.json` example starts a local server for Bloomington. | Keep sample data on the preview branch. After its page changes merge, switch Pages to `main` / root so future main-branch updates publish. Pages is a single site, not a unique preview deployment for every PR. |
 | Repository size | GitHub reports roughly 465 MB for the fork. | Avoid adding generated event archives or large preview assets; include repo checkout/build time in the first preview-host smoke test. |
 
 ## Operating cost and preview choice
 
 - **Preview:** GitHub Pages is already publishing the sample-preview branch with fictional data and no Supabase calls. After merging the page PR, select `main` and `/(root)` in Settings → Pages so the same site follows main-branch updates. Pages does not make a separate URL per PR; if unique automatic PR previews become important later, Cloudflare Pages is an optional alternative.
-- **GitHub Actions:** standard GitHub-hosted runners are free for public repositories. The inherited collection workflow may still call separately billed services if API keys are configured; that is a different cost from GitHub Actions.
+- **GitHub Actions:** standard GitHub-hosted runners are free for public repositories. The replacement collection dry run makes no external service calls. Any future live collector needs a fresh cost and quota review.
 - **Supabase:** the UI points to the upstream project's public configuration today. Supabase documents that Free Plan projects with low activity over seven days can be paused. A separate Genova project and an uptime plan are needed before real public events depend on it.
-- **AI and ticketing APIs:** the workflow has optional Anthropic and Ticketmaster credentials. Do not configure either for the sample preview. Check current terms, quotas, and possible charges before enabling either for collection.
+- **AI and ticketing APIs:** the current dry run has no Anthropic or Ticketmaster credentials. Check current terms, quotas, and possible charges before adding either to a future collector.
 
 Provider limits can change; this audit was checked on 2026-09-28.
 
