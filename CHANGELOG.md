@@ -4,6 +4,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Standardized the inherited pipeline and local test runtime on Python 3.12, pinned direct Python dependencies, added weekly Dependabot updates, and added an explicit offline ICS fixture check (issue #19).
+
 - 2026-10-01 — Removed stale build logs and generated Santarosa regression videos from the working tree; manual test recordings are retained as short-lived Actions artifacts, and the inventory explains which inherited feeds/reports remain in use (issue #18).
 
 - 2026-10-01 — Added a headless Chromium smoke test for the Genova sample preview at desktop and phone sizes, covering navigation, category filtering, dense-day expansion, browser errors, and horizontal overflow (issue #16).
