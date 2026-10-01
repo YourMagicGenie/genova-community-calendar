@@ -29,14 +29,14 @@
 
 **Files:** `.python-version`, `requirements.txt`, `requirements-dev.txt`.
 
-- [ ] Set Python 3.12 as the supported runtime.
+- [x] Set Python 3.12 as the supported runtime.
 - [ ] Replace open-ended direct dependency ranges and stale pins with tested exact versions.
 
 ### Task 2: CI and maintainer instructions
 
 **Files:** `.github/workflows/validate-pr.yml`, `.github/workflows/generate-calendar.yml`, `docs/local-build.md`.
 
-- [ ] Align Python setup with 3.12.
+- [x] Align Python setup with 3.12.
 - [ ] Document install, offline fixture test, and supported runtime.
 
 ### Task 3: Verification
