@@ -53,3 +53,6 @@ local-build-report.json
 local-build.log
 local-feed-report.json
 local-validation-report.json
+
+# Browser smoke-test failure screenshots are captured locally / in CI artifacts.
+/browser-smoke-artifacts/
