@@ -49,6 +49,10 @@ The pull request checks also run Python tests and local Supabase database tests.
 Those inherited pipeline and database components are not a configured Genova
 collection service.
 
+## Pipeline development
+
+Pipeline and scraper development uses Python 3.12. See [the local build guide](docs/local-build.md) for environment setup and the fixture-only test command. The static calendar preview above does not need pipeline dependencies.
+
 ## About the upstream project
 
 This repository is a fork of
