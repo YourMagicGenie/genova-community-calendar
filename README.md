@@ -51,7 +51,7 @@ collection service.
 
 ## Pipeline development
 
-Pipeline and scraper development uses Python 3.12. See [the local build guide](docs/local-build.md) for environment setup and the fixture-only test command. The static calendar preview above does not need pipeline dependencies.
+Pipeline and scraper development uses Python 3.12. See [the local build guide](docs/local-build.md) for environment setup and the fixture-only test command. The static calendar preview does not need the pipeline dependencies.
 
 ## About the upstream project
 
