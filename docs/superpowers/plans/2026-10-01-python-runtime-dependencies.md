@@ -30,16 +30,16 @@
 **Files:** `.python-version`, `requirements.txt`, `requirements-dev.txt`.
 
 - [x] Set Python 3.12 as the supported runtime.
-- [ ] Replace open-ended direct dependency ranges and stale pins with tested exact versions.
+- [x] Replace open-ended direct dependency ranges and stale pins with tested exact versions.
 
 ### Task 2: CI and maintainer instructions
 
-**Files:** `.github/workflows/validate-pr.yml`, `.github/workflows/generate-calendar.yml`, `docs/local-build.md`.
+**Files:** `.github/workflows/validate-pr.yml`, `.github/workflows/generate-calendar.yml`, `.github/workflows/regression-tests.yml`, `Makefile`, `README.md`, `docs/local-build.md`, `docs/fork-readiness.md`, `AGENTS.md`, `.github/dependabot.yml`.
 
 - [x] Align Python setup with 3.12.
-- [ ] Document install, offline fixture test, and supported runtime.
+- [x] Document install, offline fixture test, and supported runtime.
 
 ### Task 3: Verification
 
-- [ ] Run dependency audit, the offline ICS fixture tests, and the full Python suite under Python 3.12.
-- [ ] Record clean install/test results and review dependency security/update cadence.
+- [x] Run dependency audit, the offline ICS fixture tests, and the full Python suite under Python 3.12.
+- [x] Record clean install/test results and review dependency security/update cadence.
