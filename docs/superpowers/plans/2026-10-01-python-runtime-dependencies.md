@@ -41,5 +41,5 @@
 
 ### Task 3: Verification
 
-- [ ] Run the offline ICS fixture tests and full Python suite under Python 3.12.
+- [ ] Run dependency audit, the offline ICS fixture tests, and the full Python suite under Python 3.12.
 - [ ] Record clean install/test results and review dependency security/update cadence.
