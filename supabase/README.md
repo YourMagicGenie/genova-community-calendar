@@ -218,16 +218,21 @@ npm install -g supabase
 # Login
 supabase login
 
-# Link to project
-supabase link --project-ref dzpdualvwspgqghrysyz
+# Link to the owner-created Genova project
+supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
-# Deploy functions (all need --no-verify-jwt)
-supabase functions deploy load-events --no-verify-jwt
-supabase functions deploy my-picks --no-verify-jwt
-supabase functions deploy capture-event --no-verify-jwt
+# load-events verifies its server-only token in code. The per-function
+# verify_jwt = false setting is committed in supabase/config.toml.
+supabase functions deploy load-events
 ```
 
-**JWT gotcha:** Redeploying any edge function via the Supabase MCP tool resets "Require JWT" to ON. After redeploying, manually turn off "Require JWT" in the Supabase dashboard (Edge Functions > function-name > Settings). The `load-events` function is called by the workflow with the anon key, and `my-picks` is called by calendar apps with a feed token — neither uses a JWT.
+The Genova `load-events` function also checks the server-only `LOAD_EVENTS_TOKEN`
+header before creating a Supabase client. Supabase's gateway JWT check is
+disabled for this function only because the trusted collector is not a signed-in
+user; the in-code token check is mandatory. See
+[Protecting the event writer](../docs/load-events-writer-security.md) for
+credential setup and rotation. No Genova backend is configured yet, so do not
+deploy this function until the owner has chosen and verified one.
 
 ### 3. Set Edge Function Secrets
 
@@ -240,14 +245,22 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 ## Edge Functions
 
-### load-events (v16)
+### load-events (Genova fork)
 
-Fetches `cities/*/events.json` from GitHub Pages and upserts into the events table. Processes all 5 cities (santarosa, bloomington, davis, petaluma, toronto).
+Accepts authorized Genova event batches or fetches the Genova fixture from this
+fork, validates the payload, and upserts into the events table. It rejects
+other cities and has no fallback to `judell/community-calendar`.
 
 ```bash
-curl -X POST 'https://dzpdualvwspgqghrysyz.supabase.co/functions/v1/load-events' \
-  -H 'Authorization: Bearer <LEGACY_ANON_KEY>'
+curl -X POST "$SUPABASE_URL/functions/v1/load-events" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+  -H "x-load-events-token: $LOAD_EVENTS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"city":"genova","events":[]}'
 ```
+
+Run this only from a trusted server environment after credentials are set; do
+not use this request from a browser or commit the values.
 
 ### my-picks (v10)
 

@@ -1,31 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  canDeleteStaleEvents,
+  loadEventsCorsHeaders,
+  validateLoadEventsBody,
+  withLoadEventsProtection,
+} from "./protection.mjs";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  ...loadEventsCorsHeaders,
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withLoadEventsProtection(async (_req, body) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json().catch(() => ({}));
-
     // --- Direct POST mode: CI sends {city, events} per city ---
-    if (body.city && Array.isArray(body.events)) {
+    if (body.mode === "direct") {
       const city = body.city;
       const events = body.events;
       console.log(`Direct POST: ${events.length} events for ${city}`);
-
-      for (const event of events) {
-        event.city = event.city || city;
-      }
 
       const uniqueEvents = new Map();
       for (const event of events) {
@@ -72,7 +67,7 @@ Deno.serve(async (req) => {
       // Uses RPC to avoid URL length limits with large IN lists
       const newSourceUids = Array.from(uniqueEvents.keys());
       let deleted = 0;
-      if (newSourceUids.length > 0) {
+      if (canDeleteStaleEvents(errors) && newSourceUids.length > 0) {
         const { data: delCount, error: delError } = await supabase
           .rpc("delete_stale_events", { p_city: city, p_source_uids: newSourceUids });
         if (delError) {
@@ -97,33 +92,9 @@ Deno.serve(async (req) => {
     }
 
     // --- Legacy mode: fetch events.json from GitHub for each city ---
-    const ghRepo = Deno.env.get("GITHUB_REPO") || "judell/community-calendar";
+    const ghRepo = "YourMagicGenie/genova-community-calendar";
     const RAW_BASE = `https://raw.githubusercontent.com/${ghRepo}/main/cities`;
-
-    let cities: string[] = [];
-    if (body.cities && Array.isArray(body.cities)) {
-      cities = body.cities;
-    }
-
-    if (cities.length === 0) {
-      try {
-        const apiUrl = `https://api.github.com/repos/${ghRepo}/contents/cities`;
-        const resp = await fetch(apiUrl, { headers: { "User-Agent": "load-events" } });
-        if (resp.ok) {
-          const entries = await resp.json();
-          cities = entries.filter((e: any) => e.type === "dir").map((e: any) => e.name);
-        }
-      } catch (e) {
-        console.error("Failed to discover cities:", e);
-      }
-    }
-
-    if (cities.length === 0) {
-      return new Response(JSON.stringify({ success: false, error: "No cities found" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const cities: string[] = body.cities;
 
     console.log(`Processing cities: ${cities.join(", ")}`);
 
@@ -140,14 +111,19 @@ Deno.serve(async (req) => {
           continue;
         }
         const events = await response.json();
+        const validated = validateLoadEventsBody({ city, events });
+        if (validated.error) {
+          console.error(`Rejected ${city} feed:`, validated.error);
+          continue;
+        }
+        const genovaEvents = validated.value.events;
         const cityUids: string[] = [];
-        for (const event of events) {
-          event.city = event.city || city;
+        for (const event of genovaEvents) {
           if (event.source_uid) cityUids.push(event.source_uid);
         }
         eventsByCity.set(city, cityUids);
-        allEvents.push(...events);
-        console.log(`Fetched ${events.length} events from ${city}`);
+        allEvents.push(...genovaEvents);
+        console.log(`Fetched ${genovaEvents.length} events from ${city}`);
       } catch (e) {
         console.error(`Error fetching ${city}:`, e);
       }
@@ -197,7 +173,7 @@ Deno.serve(async (req) => {
     // Remove stale events per city using RPC to avoid URL length limits
     let deleted = 0;
     for (const [city, uids] of eventsByCity) {
-      if (uids.length > 0) {
+      if (canDeleteStaleEvents(errors) && uids.length > 0) {
         const { data: delCount, error: delError } = await supabase
           .rpc("delete_stale_events", { p_city: city, p_source_uids: uids });
         if (delError) {
@@ -226,4 +202,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, () => Deno.env.get("LOAD_EVENTS_TOKEN")));
