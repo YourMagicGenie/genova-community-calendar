@@ -1,93 +1,61 @@
-# Contributing to Community Calendar
+# Contributing to Porto Aperto | Genova calendar
 
-## How to Add Calendar Sources
+This fork is being adapted for events in Genova. The public page is currently a
+fictional sample preview; it does not yet collect or publish real events.
+Read [PROJECT_SCOPE.md](PROJECT_SCOPE.md) for the goal and release criteria.
 
-The Supabase `feeds` table is the source of truth for all ICS feed sources. The file `cities/<city>/feeds.txt` is auto-generated from the database during each build — do not edit it by hand.
+## Suggest a source
 
-### Adding ICS feeds
+Use the [event source request form](https://github.com/YourMagicGenie/genova-community-calendar/issues/new?template=add-feed.md)
+to propose a public calendar, events page, venue, or local publisher. Include
+the source's public URL, geography, likely event types, access conditions, and
+how the source should be credited.
 
-Add entries to `cities/<city>/pending_feeds.txt`:
+Every source begins as a proposal. A maintainer reviews whether it fits the
+project, can be accessed respectfully, and provides useful Genova events. A
+merged pull request, issue submission, or AI discovery result does not approve
+or activate a source. The future admin and source approval workflow is tracked
+in [issue #5](https://github.com/YourMagicGenie/genova-community-calendar/issues/5).
 
-```
-# Display Name
-https://example.com/events/?ical=1
+Do not submit private URLs, login credentials, or content that requires an
+account. Do not bypass publisher access controls or ignore stated terms and
+request limits. Preserve the publisher's name and original event link.
 
-# Another Source
-https://www.meetup.com/some-group/events/ical/
-```
+## Propose code or documentation
 
-Each feed is a comment line with the display name, followed by the URL.
+1. Open or find a GitHub issue describing the change. Keep a pull request
+   focused on one issue.
+2. Follow the repository's [AGENTS.md](AGENTS.md) and current
+   [project scope](PROJECT_SCOPE.md). Do not treat upstream-only instructions
+   as live Genova configuration.
+3. Run the checks that match your change:
 
-**Naming rule:** the `# Display Name` comment is the user-visible source attribution under each event card in the calendar UI. Use the bare canonical venue/source name only — no parenthetical context, no event counts, no strategy notes. Verification details, run-time counts, and discovery notes belong in `cities/<city>/SOURCES_CHECKLIST.md` (or a city-local `STRATEGIES_REVIEW.md`), not here.
+   ```bash
+   node --test tests/sample-preview.test.js tests/load-events-protection.test.mjs
+   python scripts/check_markdown_links.py
+   ```
 
-The CLI alternative validates the feed and registers it (`--test`
-validates only — nothing written):
+   The PR workflow also runs Python tests and local Supabase database tests.
+   Note any check you could not run; a missing check is not a pass.
+4. Add a short reader-facing entry to `CHANGELOG.md` for each PR, or explain in
+   the PR description why a change does not warrant one.
+5. In the PR description, state what changed, how it was checked, and anything
+   that still needs maintainer setup or review.
 
-```bash
-python scripts/add_feed.py URL city "Source Name"          # validate + register
-python scripts/add_feed.py URL city "Source Name" --test   # validate only
-```
+Keep sample data visibly fictional. Do not commit API keys, database secrets,
+or private event data. Do not enable a collector or connect a database without
+the maintainer's explicit setup and source approval.
 
-After your PR is merged, the next build automatically processes `pending_feeds.txt` — inserting the feeds into the database and resetting the file to its template.
+## Scope discussion
 
-### Adding scrapers
+The active project area is Genova. To discuss a future expansion elsewhere in
+Liguria, use the [area proposal form](https://github.com/YourMagicGenie/genova-community-calendar/issues/new?template=add-city-or-aggregator.md).
+An area proposal starts a discussion; it does not change the project's scope.
 
-Scraper execution is DB-first: the build runs whatever active scraper
-rows exist in the `feeds` table. There is nothing to add to the
-workflow — one command registers everything:
+## Upstream attribution
 
-```bash
-python scripts/add_scraper.py <scraper_name> <city> "<Display Name>"
-```
-
-For parameterized base scrapers, pass the scraper's site-specific
-arguments and an output filename:
-
-```bash
-python scripts/add_scraper.py tribe_rest davis "My Venue" \
-  --extra-args '--api-base "https://myvenue.org" --name "My Venue" --timezone America/Los_Angeles' \
-  --output-name myvenue
-```
-
-The scraper is always tested first — the exact command being
-registered, including `--extra-args` — and registration aborts if the
-test fails. Add `--test` to validate only, writing nothing. On
-success the script appends a scraper entry to
-`cities/<city>/pending_feeds.txt`; the next build inserts it into the
-`feeds` table (validated at insert time) and the DB-first runner
-executes it in that same build.
-
-See `scrapers/README.md` for the available base scrapers and how to
-form each one's arguments (widget IDs, venue IDs, API bases, etc.).
-
-### Removing sources
-
-Use the Manage Feeds dialog (admin icon) — its Delete button removes
-the source's row and all its events in one atomic server operation, for
-scrapers and ICS feeds alike.
-
-### What NOT to edit
-
-- **`cities/<city>/feeds.txt`** — auto-generated from the database each
-  build; a read-only, human-readable reference for what the database
-  drives. Your changes will be overwritten.
-- **`.github/workflows/generate-calendar.yml`** — carries no per-source
-  lines at all: ICS feeds download from the `feeds` table and scrapers
-  execute from it too.
-
-### Documenting your research
-
-Update `cities/<city>/SOURCES_CHECKLIST.md` with what you found — working feeds, sources that need scrapers, and non-starters. See `docs/procedures.md` for the template and discovery techniques.
-
-### PR checklist
-
-- [ ] Added ICS feeds to `pending_feeds.txt` (not `feeds.txt`)
-- [ ] For scrapers: used `add_scraper.py`
-- [ ] Updated `SOURCES_CHECKLIST.md` with findings
-- [ ] Tested feed URLs with `add_feed.py --test`
-
-## Other Guidelines
-
-- **Testing**: Tests are browser-based (`test.html`), not Node. Open `test.html` in a browser to run.
-- **Git push**: CI may push between your commits. If `git push` fails, use `git pull --rebase && git push`.
-- **Forks**: If you're running your own fork, see `docs/syncing-your-fork.md` for how to set up the feeds table. Forks without a `feeds` table can still use `feeds.txt` directly — `download_feeds.py` falls back to reading it when `SUPABASE_URL` isn't set.
+The repository is a fork of
+[judell/community-calendar](https://github.com/judell/community-calendar) and
+retains its Apache 2.0 license and copyright notices. Many inherited technical
+documents describe upstream behavior rather than a working Genova system; see
+the README's [reference-document note](README.md#about-the-upstream-project).

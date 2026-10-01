@@ -1,68 +1,65 @@
-# Community Calendar
+# Porto Aperto | Genova calendar
 
-Public events are trapped in information silos. The library posts to their website, the YMCA uses Google Calendar, the theater uses Eventbrite, Meetup groups have their own pages. Anyone wanting to know "what's happening this weekend?" must check a dozen different sites.
+Porto Aperto is building a free, easy-to-browse calendar that brings together
+public events around Genova. The project starts in Genova and aims to combine
+useful event listings from local publishers, venues, and organizations.
 
-Existing local aggregators typically expect event producers to "submit" events via a web form. This means producers must submit to several aggregators to reach their audience — tedious and error-prone. Worse, if event details change, producers must update each aggregator separately.
+## Try the preview
 
-This project takes a different approach: **event producers are the authoritative sources for their own events**. They publish once to their own calendar, and individuals and aggregators pull from those sources. When details change, the change propagates automatically. This is how RSS feeds work for blogs,iCalendar can do the same for events.
+[Open the Genova calendar preview](https://yourmagicgenie.github.io/genova-community-calendar/).
 
-The gold standard is **iCalendar (ICS) feeds** — a format that machines can read, merge, and republish. If you're an event producer and your platform can publish an ICS feed, that's great. But ICS isn't the only way. The real requirement is to **embrace the open web**. A clean HTML page with well-structured event data works. What doesn't work: events locked in Facebook or behind login walls.
+The page currently shows **fictional sample events only**. It has no live event
+feed, approved publisher list, admin panel, automated collector, or configured
+database. The preview demonstrates the calendar layout and controls; it does
+not yet show what is happening in Genova.
 
-## Live App
+## Project scope and source approval
 
-**XMLUI App**: <https://judell.github.io/community-calendar/>
+- Read [PROJECT_SCOPE.md](PROJECT_SCOPE.md) for the launch goal and success
+  criteria.
+- The future source-discovery agent and admin approval process are described in
+  [issue #5](https://github.com/YourMagicGenie/genova-community-calendar/issues/5).
+- [Suggest a public event source](https://github.com/YourMagicGenie/genova-community-calendar/issues/new?template=add-feed.md).
+  A suggestion is a candidate for review. It does not add or activate a source.
+- See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing code or source
+  changes.
 
-**Feed Health Report**: <https://judell.github.io/community-calendar/report.html>
+Only public sources that the maintainer has explicitly approved may be scanned.
+Submissions should include access conditions and attribution details. Do not
+submit private links, credentials, or instructions to get around a login wall.
 
-## Architecture
+## Run the preview and tests
 
-**[Interactive architecture explainer](https://judell.github.io/cc-architecture/)** — click through the 7 pipeline phases to see how data flows from sources to the frontend.
+Use Python to serve the static preview from the repository root:
 
-<https://github.com/user-attachments/assets/1010b793-a078-4983-a470-91221476373d>
-
-ICS feeds, web scrapers, and curator picks are collected daily by GitHub Actions, combined and deduplicated per city, converted to JSON, classified by Claude AI, and loaded into Supabase. The XMLUI frontend queries the deduplicated materialized view and renders events. See [docs/pipeline.md](docs/pipeline.md) for the full pipeline details.
-
-## The Curator Role
-
-A **curator** builds and maintains the calendar for their community. You don't create events — you discover and connect existing event sources: find organizations publishing calendars, test that feeds work, add them to the aggregator, and filter out noise. The goal is a comprehensive, low-maintenance calendar that updates automatically. See [docs/curator-guide.md](docs/curator-guide.md) for the full playbook.
-
-## Features
-
-- **Event pipeline** — ICS feeds, scrapers, deduplication, source attribution. [docs/pipeline.md](docs/pipeline.md)
-- **Event classification** — AI-powered categorization with curator overrides. [docs/pipeline.md](docs/pipeline.md#event-classification)
-- **Search and snippets** — Client-side filtering with scored description snippets. [docs/search-and-performance.md](docs/search-and-performance.md)
-- **Personal picks** — Save events, subscribe via personal ICS feed. [docs/picks.md](docs/picks.md)
-- **Event capture** — Photograph a poster or speak event details. [docs/audio-capture.md](docs/audio-capture.md)
-- **Recurrence enrichment** — Curators attach recurrence rules visible to all users. [docs/recurrence.md](docs/recurrence.md)
-
-## Add an Event Source
-
-Know of a local calendar that should be included? [Open an issue](https://github.com/judell/community-calendar/issues/new?template=add-feed.md) with the feed URL and a link to the events page. If you're comfortable with pull requests, you can also add the feed directly to `cities/{city}/feeds.txt` — see the [issue template](https://github.com/judell/community-calendar/issues/new?template=add-feed.md) for the format.
-
-## Development
-
-- **App architecture**: [docs/app-architecture.md](docs/app-architecture.md) — XMLUI components, local dev setup, resources
-- **Testing**: Python and database tests via `make test` and `make test-sql`. [tests/TEST_SUITE.md](tests/TEST_SUITE.md) — Python tests and Supabase-native pgTAP database tests run in CI on PRs
-- **Frontend tests**: Browser-based unit tests in `test.html`; regression tests via [trace-tools](https://github.com/xmlui-org/trace-tools). [docs/regression-testing.md](docs/regression-testing.md)
-- **Adding a city**: [docs/curator-guide.md](docs/curator-guide.md) (discovery) and [AGENTS.md](AGENTS.md) (technical steps)
-- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md) — how to add feeds and submit PRs
-- **Adding sources**: [docs/procedures.md](docs/procedures.md) — feed discovery, testing, geo-filtering
-- **Supabase**: [supabase/README.md](supabase/README.md) — schema, edge functions, auth, RLS
-- **Scrapers**: [scrapers/README.md](scrapers/README.md) — scraper library and per-site docs
-- **Timezones**: [docs/timezone.md](docs/timezone.md) — ICS timezone handling conventions
-- **Deduplication**: [docs/deduplication.md](docs/deduplication.md) — dedup implementation details
-- **AI agents**: [AGENTS.md](AGENTS.md) — operating guide for AI agents working on this codebase
-
-## Repo Structure
-
+```bash
+python3 -m http.server 8000
 ```
-.github/workflows/      # GitHub Actions automation
-cities/                 # Per-city data (feeds.txt, SOURCES_CHECKLIST.md)
-cli/                    # CLI tools
-docs/                   # Detailed documentation
-scrapers/               # Event scrapers for sites without ICS feeds
-scripts/                # Build and utility scripts (combine_ics, ics_to_json, classify, etc.)
-supabase/               # DDL docs, edge functions (load-events, my-picks, capture-event)
-xmlui/                  # XMLUI app (Main.xmlui, Globals.xs, components/, helpers.js)
-tests/                  # Python test suite and repo-level testing docs
+
+Then open <http://localhost:8000/?city=genova&preview=sample>. The sample page
+does not need a database or API keys.
+
+Run the preview and writer-security tests with Node.js 20 or newer:
+
+```bash
+node --test tests/sample-preview.test.js tests/load-events-protection.test.mjs
 ```
+
+The pull request checks also run Python tests and local Supabase database tests.
+Those inherited pipeline and database components are not a configured Genova
+collection service.
+
+## About the upstream project
+
+This repository is a fork of
+[judell/community-calendar](https://github.com/judell/community-calendar),
+licensed under Apache 2.0. The upstream project supplied useful code and ideas;
+this fork adapts them for Porto Aperto and Genova. Keep the upstream copyright
+and license notices in place.
+
+Many inherited technical documents still describe the upstream multi-city
+system. Treat them as reference material until specifically adapted for this
+project. This includes `docs/pipeline.md`, `docs/curator-guide.md`,
+`docs/procedures.md`, `scrapers/README.md`, and parts of `supabase/README.md`.
+For the current project state, use `PROJECT_SCOPE.md`, `AGENTS.md`, and
+`docs/fork-readiness.md`.

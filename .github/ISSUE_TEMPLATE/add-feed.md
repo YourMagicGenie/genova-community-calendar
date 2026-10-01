@@ -1,30 +1,36 @@
 ---
-name: Add an event feed
-about: Suggest an ICS/iCal feed to add to a city's calendar
-title: "Add feed: SOURCE_NAME (CITY)"
-labels: feed-request
+name: Suggest a public event source
+about: Propose a Genova publisher, venue, organization, events page, or calendar
+title: "Source candidate: SOURCE NAME"
 ---
 
-**City:** (e.g., bloomington, santarosa)
+Use this form to suggest a source that already publishes public events around
+Genova. This creates a candidate for maintainer review. It does not add the
+source to the collector or approve it for scanning.
 
-**Source name:** (e.g., "Harmony School Calendar")
+**Publisher or source name:**
 
-**Feed URL:** (the ICS/iCal URL)
+**Public events page URL:**
 
-**Events page URL:** (the human-readable calendar page — this is used as a fallback link on event cards when the feed doesn't include per-event URLs)
+**Public calendar/feed URL, if known (ICS/iCal, RSS, or other):**
 
-**Notes:** (anything else — what kind of events, how you found it, etc.)
+**Geography covered:**
 
----
+**Event types likely to appear:**
 
-### Why we need the events page URL
+**Possible collection method:** (public calendar feed, structured page, ordinary
+public webpage, or unknown)
 
-Many calendar feeds (especially Google Calendar) don't include URLs for individual events. When that happens, we use the **events page URL** as a fallback so that event cards in the calendar link somewhere useful instead of nowhere.
+**Access conditions and limits:** Is the page available without signing in? Note
+any published terms, robots instructions, rate limits, or other access notes.
 
-In `feeds.txt`, this looks like:
-```
-# Harmony School Calendar | https://harmonyschool.org/calendar/
-https://calendar.google.com/calendar/ical/...@group.calendar.google.com/public/basic.ics
-```
+**Attribution:** What publisher name should appear, and which original page
+should event listings link back to?
 
-The part after `|` is the fallback URL.
+**Example event or evidence that this source is useful:**
+
+**Anything else the maintainer should review:**
+
+Do not include credentials, private links, or instructions to bypass access
+controls. A maintainer will review scope, access, usefulness, and attribution
+before any source can be approved.

@@ -4,6 +4,7 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-01 — Replaced inherited upstream onboarding and source request instructions with Genova-specific preview guidance and source review forms ([issue #14](https://github.com/YourMagicGenie/genova-community-calendar/issues/14)).
 - 2026-10-01 — Protected the inherited event writer with a server-only credential, strict Genova payload checks, no upstream repository fallback, and safe handling that skips stale-event cleanup after a failed upload ([issue #12](https://github.com/YourMagicGenie/genova-community-calendar/issues/12)).
 - 2026-10-01 — Isolated the public Genova preview from upstream Supabase and inherited cities; live event collection is still unconfigured ([issue #11](https://github.com/YourMagicGenie/genova-community-calendar/issues/11)).
 - 2026-10-01 — Retired the inherited all-city daily publisher in favor of a Genova-only manual dry run with no writes or external service calls ([issue #10](https://github.com/YourMagicGenie/genova-community-calendar/issues/10)).
