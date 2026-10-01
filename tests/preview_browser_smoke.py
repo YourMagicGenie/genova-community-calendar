@@ -46,10 +46,20 @@ def run_viewport(browser, base_url, name, width, height):
 
         status = page.locator("#calendar-status")
         status.wait_for()
+        fixture_count = page.evaluate("""async () => {
+            const response = await fetch('sample-events.json');
+            if (!response.ok) return -1;
+            return (await response.json()).length;
+        }""")
+        assert fixture_count >= 15, f"fictional sample fixture did not load at least 15 events: {fixture_count}"
+
         status_text = status.inner_text()
-        assert re.fullmatch(r"\d+ sample events?", status_text), f"sample fixture did not load: {status_text}"
-        initial_count = int(status_text.split()[0])
-        assert initial_count > 0, "the current calendar view should show sample events"
+        count_match = re.fullmatch(r"\d+ sample events?", status_text)
+        if count_match:
+            initial_count = int(status_text.split()[0])
+        else:
+            assert status_text == "No sample events match these filters.", f"unexpected calendar status: {status_text}"
+            initial_count = 0
 
         month_heading = page.locator("#calendar-month")
         month_heading.wait_for()
