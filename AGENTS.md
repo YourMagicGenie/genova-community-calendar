@@ -36,10 +36,10 @@ Do not mark release criteria complete because a sample page looks finished.
 - `xmlui/config.json` contains the upstream Supabase project URL and a
   publishable client key. This is not a Genova backend. Do not use it for
   Genova writes or assume inherited admin accounts belong to the maintainer.
-- `.github/workflows/generate-calendar.yml` contains an inherited daily
-  schedule and defaults to upstream cities. Do not trigger, enable, or copy
-  its publishing path for Genova until the scope, database, source approvals,
-  access, costs, and recovery behavior have been reviewed.
+- `.github/workflows/generate-calendar.yml` is a manual, read-only Genova
+  scope check. It has no schedule or writer. Keep it disabled in Actions until
+  source approval, backend ownership, access, costs, and recovery are reviewed.
+  See `docs/genova-collection-safety.md`.
 
 ## Product rules for Genova work
 
