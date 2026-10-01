@@ -49,14 +49,15 @@ class FakeDocument {
   createElement(tagName) { return new FakeElement(tagName); }
 }
 
-test('sample preview route only matches Genova sample mode', () => {
+test('sample preview route is the default and only serves Genova', () => {
   const api = requirePreview();
+  assert.equal(api.matchesSampleRoute('https://calendar.example/'), true);
+  assert.equal(api.matchesSampleRoute('https://calendar.example/?city=genova'), true);
   assert.equal(api.matchesSampleRoute('https://calendar.example/?city=genova&preview=sample'), true);
   assert.equal(api.matchesSampleRoute('https://calendar.example/?city=asheville&preview=sample'), false);
-  assert.equal(api.matchesSampleRoute('https://calendar.example/?city=genova'), false);
 });
 
-test('site entry sends only the Genova sample route to the isolated preview page', () => {
+test('site entry defaults to the Genova preview and never opens the inherited app', () => {
   const html = readFileSync(new URL('../index.html', `file://${__filename}`), 'utf8');
   const script = html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
   assert.ok(script, 'site entry should include its route selector');
@@ -70,12 +71,33 @@ test('site entry sends only the Genova sample route to the isolated preview page
     return target;
   }
 
-  assert.equal(destination('?city=genova&preview=sample'), 'xmlui/genova-sample-preview.html?city=genova&preview=sample#events');
-  assert.equal(destination('?city=asheville'), 'xmlui/index.html?city=asheville#events');
+  assert.equal(destination(''), 'xmlui/genova-sample-preview.html?city=genova&preview=sample#events');
+  assert.equal(destination('?city=genova'), 'xmlui/genova-sample-preview.html?city=genova&preview=sample#events');
+  assert.equal(destination('?city=asheville'), 'xmlui/not-configured.html?city=asheville#events');
+  const notConfigured = readFileSync(new URL('../xmlui/not-configured.html', `file://${__filename}`), 'utf8');
+  assert.match(notConfigured, /currently scoped to Genova/);
+  assert.match(notConfigured, /There is no live event feed yet/);
+});
+
+test('direct inherited app entry is disabled and contains no upstream database config', () => {
+  const html = readFileSync(new URL('../xmlui/index.html', `file://${__filename}`), 'utf8');
+  const config = JSON.parse(readFileSync(new URL('../xmlui/config.json', `file://${__filename}`), 'utf8'));
+  assert.match(html, /genova-sample-preview\.html/);
+  assert.doesNotMatch(html, /shell\.js|config\.json|supabase-js|dzpdualvwspgqghrysyz/);
+  assert.equal(config.supabaseUrl, undefined);
+  assert.equal(config.supabasePublishableKey, undefined);
+});
+
+test('public source and city defaults contain Genova only and no approved publishers', () => {
+  const cities = JSON.parse(readFileSync(new URL('../cities.json', `file://${__filename}`), 'utf8'));
+  const priorities = JSON.parse(readFileSync(new URL('../source_priority.json', `file://${__filename}`), 'utf8'));
+  assert.deepEqual(cities, { genova: { timezone: 'Europe/Rome' } });
+  assert.deepEqual(priorities, { aggregators: [] });
 });
 
 test('sample page labels itself as fictional and uses only local runtime assets', () => {
   const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
+  assert.match(html, /Live status:[\s\S]*No live Genova event feed is connected yet/);
   assert.match(html, /Preview only:[\s\S]*fictional example data/);
   assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);

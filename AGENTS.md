@@ -24,18 +24,22 @@ Do not mark release criteria complete because a sample page looks finished.
 
 ## What actually works today
 
-- `/?city=genova&preview=sample` routes to
+- The root URL and `/?city=genova` route to
   `xmlui/genova-sample-preview.html`. Its data in
   `xmlui/sample-events.json` is fictional and links only to `example.org`.
   `xmlui/sample-preview.js` and `.css` implement the month grid, category
   checkboxes, and crowded-day expansion.
+- The inherited app entry at `/xmlui/` also redirects to that preview. Other
+  city requests show an unconfigured message; none of these public routes load
+  the inherited backend client.
 - The ordinary `xmlui/` app, `cities/`, `scrapers/`, `scripts/`, and
   `supabase/` contain inherited multi-city code. They are useful starting
   points, but they do not establish a working Genova collection pipeline,
   Genova database, admin panel, or calendar subscription.
-- `xmlui/config.json` contains the upstream Supabase project URL and a
-  publishable client key. This is not a Genova backend. Do not use it for
-  Genova writes or assume inherited admin accounts belong to the maintainer.
+- `xmlui/config.json` has no backend configured. The old upstream Supabase
+  URL and public client key were removed from the Genova web configuration.
+  Do not add a backend until the owner chooses and verifies a fork-owned
+  project; inherited scripts and database files remain upstream-derived code.
 - `.github/workflows/generate-calendar.yml` is a manual, read-only Genova
   scope check. It has no schedule or writer. Keep it disabled in Actions until
   source approval, backend ownership, access, costs, and recovery are reviewed.

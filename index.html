@@ -4,10 +4,15 @@
 <body>
 <script>
   var params = new URLSearchParams(window.location.search);
-  var search = params.toString() ? '?' + params.toString() : '';
+  var requestedCity = params.get('city');
   var hash = window.location.hash;
-  var isGenovaSample = params.get('city') === 'genova' && params.get('preview') === 'sample';
-  var destination = isGenovaSample ? 'xmlui/genova-sample-preview.html' : 'xmlui/index.html';
+  var isGenova = requestedCity === null || requestedCity === 'genova';
+  var destination = isGenova ? 'xmlui/genova-sample-preview.html' : 'xmlui/not-configured.html';
+  if (isGenova) {
+    params.set('city', 'genova');
+    params.set('preview', 'sample');
+  }
+  var search = params.toString() ? '?' + params.toString() : '';
   window.location.replace(destination + search + hash);
 </script>
 </body>

@@ -17,7 +17,8 @@
 
   function matchesSampleRoute(value) {
     const url = value instanceof URL ? value : new URL(value, 'https://calendar.example/');
-    return url.searchParams.get('city') === 'genova' && url.searchParams.get('preview') === 'sample';
+    const city = url.searchParams.get('city');
+    return city === null || city === 'genova';
   }
 
   function categoriesFor(event) {
