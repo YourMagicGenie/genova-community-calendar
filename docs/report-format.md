@@ -205,7 +205,7 @@ The local build reported rate limiting for the library ICS feed.
 Tooling should:
 
 1. parse the YAML front matter
-2. validate it against [docs/report-schema.json](docs/report-schema.json)
+2. validate it against [report-schema.json](report-schema.json)
 3. treat the Markdown body as narrative support
 
 If the body and front matter disagree, front matter wins.
