@@ -13,6 +13,25 @@ This is a small research snapshot for the maintainer, not the operational source
 | [Teatro Nazionale di Genova — season](https://www.teatronazionalegenova.it/stagione-2026-2027/) | Direct theater operator covering several Genova stages; useful for performances, family theater, and cultural events. | The official site lists the 2026/27 season and stage filters. Event-level dates and venues should be checked on individual production pages; the listing's presentation may need inspection for accessible structured data. | Check publisher rules and feed/API availability. Verify event-level showtimes and each venue's Comune di Genova location before considering collection. | Pending access and method review |
 | [Musei di Genova — Mostre ed Eventi](https://www.museidigenova.it/it/mostre-ed-eventi) | Official civic museum listings include exhibitions, workshops, talks, family activities, and guided visits across city museums. | The public index shows start/end dates and venues. Its event cards often link to Visitgenoa, so overlap with that publisher is expected and canonical-link deduplication will matter. | Review the museum and linked publisher rules. Check whether the museum offers a distinct feed/API; otherwise decide whether this adds enough direct-source value beyond Visitgenoa. | Pending access and method review |
 
+
+## Preliminary public-use review
+
+**Checked:** 2026-10-01. These notes are a starting point, not legal advice or source approval.
+
+- [Visitgenoa credits](https://www.visitgenoa.it/it/credits) identifies Visitgenoa as a Comune di Genova project and says some images/content are used with permission from their respective rights holders. This is not a blanket reuse license. The [Comune's legal notice](https://www.comune.genova.it/note-legali) says its own site's material is generally CC BY 4.0 unless otherwise specified, including third-party content; do not assume that license applies to Visitgenoa items or embedded publisher material.
+- Mentelocale event pages show a copyright notice reserving rights. Its [privacy notice](https://www.mentelocale.it/informativa-privacy.htm) is about personal-data processing, not permission to republish editorial content. Before automated extraction, ask Mentelocale about an official feed/API or written collection and attribution terms. Do not copy article text or images into the calendar.
+- Teatro Nazionale's [site policy](https://www.teatronazionalegenova.it/policy-sito.htm) describes navigation and personal-data handling; it does not answer whether automated event collection is allowed. Ask about an official feed/API or use terms before building a collector.
+- Palazzo Ducale's public [event calendar](https://palazzoducale.genova.it/calendario-eventi/) provides useful event facts. The site's available regulation page covers use of the physical venue, not automated use of website content; web collection terms remain unverified.
+- Musei di Genova's event cards often link to Visitgenoa, creating likely duplication. A separate legal notice on `catalogo.museidigenova.it` restricts public/commercial reuse of catalogue text and images, but that notice is on the catalogue subdomain; do not assume it automatically governs the separate event listing. Clarify with the Comune before collection.
+
+No source's `robots.txt`, official event feed/API, request limits, or automated-collection permission has been confirmed in this review.
+
+## Suggested order for maintainer review
+
+Start with direct venue/organizer sources if their terms or an explicit permission allow collection: Palazzo Ducale and Teatro Nazionale look useful for authoritative dates, venues, and ticket details. Visitgenoa may add broader event coverage but needs rights and overlap checks. Mentelocale looks especially useful for variety, but its editorial rights notice makes a feed/permission conversation the prudent next step. Musei di Genova may overlap with Visitgenoa and should be kept only if it contributes distinct events or a permitted direct feed.
+
+This is a candidate-prioritization recommendation only. Every item remains pending until access terms and collection method are recorded and the maintainer explicitly approves it.
+
 ## Deliberately not shortlisted
 
 The [Comune di Genova general events page](https://www.comune.genova.it/vivere-il-comune/eventi) describes council and committee convocations among its event content. That is a poor match for this fun-events calendar. Review specific cultural, museum, venue, or sports pages instead of collecting the general municipal meeting stream.
