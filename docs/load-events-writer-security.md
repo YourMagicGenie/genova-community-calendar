@@ -20,12 +20,13 @@ trusted to supply a city or event list without server-side checks.
   `service_role` can execute it. Its `SECURITY DEFINER` privileges cannot be
   reached by calling the RPC directly as `anon` or `authenticated`.
 
-These checks do not make an endpoint ready to deploy. No Genova backend or
-writer workflow is configured by this repository yet.
+These checks do not make the live event writer ready to deploy. The owner
+Supabase project exists, but its application schema, live source approval, and
+writer secrets are not configured.
 
-## Configure credentials when a Genova backend is chosen
+## Configure credentials only after a live source is approved
 
-1. Generate a random token with at least 32 characters outside the repository,
+1. For a later live-source test, generate a random token with at least 32 characters outside the repository,
    for example with `openssl rand -hex 32`. Do not paste it into chat, an issue,
    a workflow file, or any committed file.
 2. Add the token as `LOAD_EVENTS_TOKEN` in the chosen Supabase project's Edge

@@ -8,15 +8,21 @@ useful event listings from local publishers, venues, and organizations.
 
 [Open the Genova calendar preview](https://yourmagicgenie.github.io/genova-community-calendar/).
 
-The page currently shows **fictional sample events only**. It has no live event
-feed, approved publisher list, admin panel, automated collector, or configured
-database. The preview demonstrates the calendar layout and controls; it does
-not yet show what is happening in Genova.
+The page currently shows **fictional sample events only**. The owner-controlled
+Supabase project is connected in the inherited app configuration, but it has
+not yet received the application's tables or admin account. There is no
+approved publisher list, real event feed, or source collector. Issue #5 adds a
+fixture-only admin test path that still needs database migrations and private
+credentials before it can be used. The preview does not yet show what is
+happening in Genova.
 
 ## Project scope and source approval
 
 - Read [PROJECT_SCOPE.md](PROJECT_SCOPE.md) for the launch goal and success
   criteria.
+- The fixture-only admin run path and its owner setup steps are documented in
+  [the Issue #5 run guide](docs/genova-agent-run-history.md); it does not scan
+  real sources or publish events.
 - The future source-discovery agent and admin approval process are described in
   [issue #5](https://github.com/YourMagicGenie/genova-community-calendar/issues/5).
 - [Suggest a public event source](https://github.com/YourMagicGenie/genova-community-calendar/issues/new?template=add-feed.md).

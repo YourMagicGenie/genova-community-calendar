@@ -1,0 +1,32 @@
+{
+  "fictional": true,
+  "candidates": [
+    {
+      "name": "Example Genova Events",
+      "url": "https://example.org/genova-events",
+      "reason": "Fictional fixture source for the admin run test."
+    }
+  ],
+  "events": [
+    {
+      "fictional": true,
+      "title": "Fictional jazz evening at Example Hall",
+      "date": "2026-11-07",
+      "time": "20:30",
+      "timezone": "Europe/Rome",
+      "categories": ["music"],
+      "confidence": 0.94,
+      "source_url": "https://example.org/genova-events/jazz-evening"
+    },
+    {
+      "fictional": true,
+      "title": "Fictional art walk at Example Square",
+      "date": "2026-11-08",
+      "time": null,
+      "timezone": "Europe/Rome",
+      "categories": ["art-exhibitions", "outdoors-tours"],
+      "confidence": 0.42,
+      "source_url": "https://example.org/genova-events/art-walk"
+    }
+  ]
+}

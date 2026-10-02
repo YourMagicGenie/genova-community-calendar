@@ -1,0 +1,68 @@
+name: Genova agent fixture run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Private run-history record created by the admin Edge Function
+        required: true
+        type: string
+      mode:
+        description: This first pilot supports fictional fixture validation only
+        required: true
+        type: choice
+        options:
+          - fixture
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genova-agent-fixture
+  cancel-in-progress: false
+
+jobs:
+  fixture:
+    if: ${{ inputs.mode == 'fixture' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the exact workflow revision
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Mark the private run as started
+        env:
+          GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python scripts/post_genova_agent_callback.py --status running
+
+      - name: Validate fictional Genova fixtures
+        id: fixtures
+        continue-on-error: true
+        run: python scripts/genova_agent_fixture.py --json > fixture-result.json
+
+      - name: Mark the private run as succeeded
+        if: ${{ always() && steps.fixtures.outcome == 'success' }}
+        env:
+          GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python scripts/post_genova_agent_callback.py --status succeeded --report fixture-result.json
+
+      - name: Mark the private run as failed
+        if: ${{ always() && steps.fixtures.outcome != 'success' }}
+        env:
+          GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python scripts/post_genova_agent_callback.py --status failed
+
+      - name: Fail the workflow when fixture validation fails
+        if: ${{ steps.fixtures.outcome != 'success' }}
+        run: exit 1

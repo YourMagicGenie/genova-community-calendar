@@ -1,6 +1,6 @@
 -- Agent run history is private and writable only by trusted server code.
 BEGIN;
-SELECT plan(23);
+SELECT plan(30);
 
 SELECT has_table('public', 'agent_runs', 'agent run history table exists');
 SELECT has_column('public', 'agent_runs', 'run_mode', 'run mode is recorded');
@@ -21,12 +21,33 @@ SELECT ok(
   'row level security is enabled on agent run history'
 );
 SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.admin_users'::regclass),
+  'row level security is enabled on the admin allowlist'
+);
+SELECT ok(
   to_regclass('public.agent_runs_one_inflight_idx') IS NOT NULL,
   'a partial unique index prevents overlapping queued or running jobs'
 );
 SELECT ok(
   NOT has_table_privilege('anon', 'public.agent_runs', 'SELECT'),
   'anonymous visitors cannot read agent run history'
+);
+SELECT ok(
+  has_table_privilege('authenticated', 'public.admin_users', 'SELECT'),
+  'signed-in sessions can check their own admin marker'
+);
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.admin_users', 'SELECT'),
+  'anonymous visitors cannot query the admin allowlist'
+);
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.admin_users', 'INSERT'),
+  'signed-in users cannot grant admin access'
+);
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.admin_users', 'UPDATE') AND
+  NOT has_table_privilege('authenticated', 'public.admin_users', 'DELETE'),
+  'signed-in users cannot change or revoke admin access'
 );
 SELECT ok(
   has_table_privilege('service_role', 'public.agent_runs', 'INSERT'),
@@ -79,6 +100,8 @@ SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000051
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000051","role":"authenticated"}', true);
 SELECT is((SELECT count(*)::int FROM public.agent_runs), 0,
   'authenticated non-admin cannot inspect run history');
+SELECT is((SELECT count(*)::int FROM public.admin_users), 0,
+  'authenticated non-admin cannot see the admin marker');
 RESET ROLE;
 
 SET LOCAL ROLE authenticated;
@@ -86,6 +109,8 @@ SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000055
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000055","role":"authenticated"}', true);
 SELECT is((SELECT count(*)::int FROM public.agent_runs), 1,
   'registered admin can inspect run history');
+SELECT is((SELECT count(*)::int FROM public.admin_users), 1,
+  'registered admin can see their own admin marker');
 RESET ROLE;
 
 DELETE FROM public.agent_runs;

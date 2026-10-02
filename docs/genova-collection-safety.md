@@ -8,8 +8,10 @@ in Git history for reference; it must not be re-enabled as a publisher.
 
 The replacement has no schedule, no external API calls, no secrets, and only
 read-only repository permission. It cannot scan sources or publish events.
-The GitHub workflow is still disabled in the fork's Actions settings; leave
-it disabled until the subsequent Genova source and backend reviews are done.
+The inherited `Generate Calendar` scope-check workflow remains disabled in
+the fork's Actions settings. It is not the Issue #5 agent workflow and must not
+be re-enabled as a publisher. Issue #5 adds a separate manual fixture-only
+workflow; it has no source scan, schedule, or event writer.
 
 To test locally without credentials:
 
@@ -24,8 +26,9 @@ city fails closed. A future manual GitHub dry run requires the reviewed
 repository variable `ENABLED_CITIES` to equal `genova` exactly.
 
 There is no recurring collection cost or recovery procedure to operate yet.
-Before enabling a schedule or live publisher, the maintainer must review
-source access and approval (#5, #13), a fork-owned backend (#11), writer
-authorization (#12), expected service costs and quotas, failure recovery,
-and a working no-credentials dry run. A new workflow should only read active,
-approved Genova sources and never use inherited city data or upstream keys.
+Before enabling discovery or collection, the maintainer must approve a
+specific public Genova source and method, finish the Issue #5 admin setup,
+review access, cost, quotas, and recovery, and complete the fixture-only dry
+run. Any future collector may read only sources marked both approved and
+active; it must never use inherited city data or upstream keys. No recurring
+schedule or paid provider is enabled by the fixture workflow.

@@ -1,68 +1,65 @@
 # Supabase Migrations
 
-This directory contains the ordered schema changes needed to move an existing instance forward.
+`supabase/migrations/` is the ordered database change history for this
+repository. A migration may alter existing data or objects, so never assume
+that it is safe to paste into the SQL Editor more than once.
 
-## Purpose
+## Before applying changes to a hosted project
 
-Migration files are the authoritative change history for the database.
-
-Use them for:
-- creating tables, indexes, policies, functions, and views
-- altering or dropping existing objects
-- backfills and data corrections that are part of a schema rollout
-
-Do not treat `supabase/ddl/` as the way to upgrade an existing database. Those files describe the intended current state, but they do not describe how to get there safely from an older state.
-
-## Naming
-
-Use timestamp-prefixed, descriptive filenames matching the Supabase CLI convention:
-
-- `20260330191500_add_city_column.sql`
-- `20260421182300_optimize_deduplicated_events_index.sql`
-
-The timestamp format is `YYYYMMDDHHMMSS`. This allows `supabase db push` to apply them in order and track which have been applied.
-
-## Applying migrations
-
-### Option A: SQL Editor (simplest)
-
-Paste the contents of the migration file into the Supabase SQL Editor and run it. All migrations use `IF EXISTS` / `IF NOT EXISTS` guards so they're safe to re-run.
-
-### Option B: Supabase CLI
-
-The CLI tracks applied migrations in a `supabase_migrations.schema_migrations` table and only runs new ones.
+Use the Supabase CLI migration workflow from the repository root. First inspect
+the local and remote versions:
 
 ```bash
-# One-time setup (from the repo root)
 supabase login
 supabase link --project-ref <your-project-ref>
+supabase migration list
+```
 
-# If your instance already has earlier migrations applied manually,
-# mark them as applied so the CLI doesn't try to re-run them:
-supabase migration repair 20260330191500 --status applied
+Review the listed local and remote versions before applying anything. Apply
+migrations only after confirming that each missing migration is intended for
+that database:
 
-# Apply all unapplied migrations
+```bash
 supabase db push
 ```
 
-The CLI looks for migration files in `supabase/migrations/` relative to the current working directory. Run commands from the repo root, or use `--workdir` to point elsewhere.
+For local testing, use a disposable local Supabase instance:
 
-## Workflow
+```bash
+supabase start
+supabase db reset
+supabase test db supabase/tests/
+```
 
-For every schema change:
+`supabase db reset` resets the local database. Do not run it against the
+hosted project.
 
-1. Add a migration file.
-2. Apply it to the main instance.
-3. Verify app and function behavior.
-4. Update the matching `supabase/ddl/` files so they reflect the new live state.
-5. Communicate to fork maintainers that they need to apply the new migration(s).
+## This project's current hosted migration state
 
-## Destructive changes
+As of 2026-10-02, the owner-controlled Genova project records the dashboard
+RLS-helper migration at version `20261002104614`. The repository filename now
+matches that applied version. The earlier application migrations, including
+the application schema and `agent_runs`, have not been applied to that project.
 
-Prefer staged rollouts:
+Because a later migration is already recorded while earlier repository
+migrations are pending, do not run `supabase db push` or paste SQL files into
+the hosted SQL Editor until the migration list and the intended repair/apply
+sequence have been reviewed. Issue [#45](https://github.com/YourMagicGenie/genova-community-calendar/issues/45)
+tracks corrections to the operating instructions; Issue
+[#5](https://github.com/YourMagicGenie/genova-community-calendar/issues/5)
+tracks the admin-only fixture run that depends on the application schema.
 
-1. Add the new structure.
-2. Migrate data and code.
-3. Remove old structure in a later migration.
+Migration repair is an administrative history operation. Use it only after
+confirming the actual remote schema and deciding which migration versions
+really ran. Never copy a repair version from an example or another project.
 
-This keeps upstream and forked instances easier to sync.
+## Rules for future schema changes
+
+1. Add one timestamped migration file for each schema change.
+2. Test it with local Supabase and the database tests before proposing a PR.
+3. Apply it to the hosted project through the reviewed migration workflow.
+4. Verify the database behavior and Supabase security/performance advisors.
+5. Update this guide if the documented hosted migration state changes.
+
+The older files in `supabase/ddl/` are snapshots or inherited setup material;
+they are not a safe substitute for the ordered migrations in this directory.
