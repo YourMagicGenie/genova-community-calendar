@@ -36,14 +36,16 @@ Do not mark release criteria complete because a sample page looks finished.
   `supabase/` contain inherited multi-city code. They are useful starting
   points, but they do not establish a working Genova collection pipeline,
   Genova database, admin panel, or calendar subscription.
-- `xmlui/config.json` has no backend configured. The old upstream Supabase
-  URL and public client key were removed from the Genova web configuration.
-  Do not add a backend until the owner chooses and verifies a fork-owned
-  project; inherited scripts and database files remain upstream-derived code.
-- `.github/workflows/generate-calendar.yml` is a manual, read-only Genova
-  scope check. It has no schedule or writer. Keep it disabled in Actions until
-  source approval, backend ownership, access, costs, and recovery are reviewed.
-  See `docs/genova-collection-safety.md`.
+- `xmlui/config.json` contains the owner-controlled Genova Supabase URL and
+  publishable key. The root and Genova public preview remain isolated from
+  Supabase and display fictional fixtures only. The hosted project currently
+  has the RLS helper but not the application's tables, admin account, sources,
+  or event data. Do not treat the connection as a live collector.
+- `.github/workflows/generate-calendar.yml` is the old manual, read-only
+  Genova scope check. It has no schedule, source scan, or writer, and remains
+  disabled in Actions. The separate Issue #5 workflow currently validates
+  fictional fixtures only after its admin and secret setup is complete. See
+  `docs/genova-collection-safety.md`.
 
 ## Product rules for Genova work
 

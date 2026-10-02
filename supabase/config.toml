@@ -11,6 +11,15 @@ project_id = "main"
 [functions.load-events]
 verify_jwt = false
 
+# The modern @supabase/server wrapper validates signed-in users in code because
+# the Edge gateway's verify_jwt option only understands legacy JWT API keys.
+[functions.genova-agent-run]
+verify_jwt = false
+
+# GitHub Actions uses a separate callback credential, checked by the function.
+[functions.genova-agent-callback]
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.
@@ -23,13 +32,6 @@ extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
 max_rows = 1000
-# Controls whether new tables, views, sequences and functions created in the `public` schema by
-# `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
-# without explicit GRANTs. Leave unset today to preserve local behaviour. The implicit default
-# flips to `false` on 2026-05-30 to match the new cloud default, and the field is removed in
-# 2026-10-30 once the always-revoked behaviour is permanent. Set to `false` to opt in early.
-# auto_expose_new_tables = false
-
 [api.tls]
 # Enable HTTPS endpoints locally using a self-signed certificate.
 enabled = false

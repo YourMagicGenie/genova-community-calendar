@@ -179,20 +179,11 @@ Session is stored in `localStorage` as `sb-<project-ref>-auth-token`. To test wi
 
 ## Setup
 
-### 1. Run DDL Scripts
+### 1. Use the Ordered Migration Guide
 
-Execute the SQL files in the Supabase SQL Editor in order:
+For a new or existing hosted project, follow the repository's [Supabase migration guide](migrations/README.md). It explains how to inspect local and remote migration versions before applying changes. Do not run the older files in `ddl/` manually in the SQL Editor: they are inherited schema snapshots, not the current upgrade path, and can conflict with a project's migration history.
 
-```bash
-# Or use psql if you have direct database access
-psql $DATABASE_URL -f ddl/01_extensions.sql
-psql $DATABASE_URL -f ddl/02_events.sql
-psql $DATABASE_URL -f ddl/03_picks.sql
-psql $DATABASE_URL -f ddl/04_feed_tokens.sql
-psql $DATABASE_URL -f ddl/05_cron_jobs.sql
-psql $DATABASE_URL -f ddl/06_event_enrichments.sql
-psql $DATABASE_URL -f ddl/08_admin_users.sql
-psql $DATABASE_URL -f ddl/09_admin_github_users.sql
+For local disposable-database tests, use `supabase db reset` followed by `supabase test db supabase/tests/`. Never run the local reset command against the hosted project.
 
 ### Admin access management
 
@@ -235,8 +226,9 @@ header before creating a Supabase client. Supabase's gateway JWT check is
 disabled for this function only because the trusted collector is not a signed-in
 user; the in-code token check is mandatory. See
 [Protecting the event writer](../docs/load-events-writer-security.md) for
-credential setup and rotation. No Genova backend is configured yet, so do not
-deploy this function until the owner has chosen and verified one.
+credential setup and rotation. The owner-controlled project is now connected,
+but its application migrations and an approved live source are not in place.
+Do not deploy or call this event writer for the fixture-only Issue #5 test.
 
 ### 3. Set Edge Function Secrets
 

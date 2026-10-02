@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light">
+  <title>Porto Aperto | Genova admin</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Porto Aperto | Genova</p>
+        <h1>Private admin</h1>
+      </div>
+      <span class="admin-label">YMGAdmin</span>
+    </header>
+
+    <section id="setup-message" class="notice notice-error" role="alert" hidden>
+      The admin page could not load the calendar's public Supabase connection.
+    </section>
+
+    <section id="sign-in-panel" class="panel">
+      <h2>Sign in</h2>
+      <p>This area is for the approved project admin. Public calendar visitors do not need an account.</p>
+      <form id="sign-in-form">
+        <label for="email">Admin email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button id="sign-in-button" type="submit">Sign in</button>
+      </form>
+      <p id="sign-in-message" class="status-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="not-admin-panel" class="panel notice notice-error" hidden>
+      <h2>Admin access not approved</h2>
+      <p>This signed-in account is not on the private Genova admin allowlist.</p>
+      <button id="not-admin-sign-out" class="button-secondary" type="button">Sign out</button>
+    </section>
+
+    <section id="admin-panel" class="panel" hidden>
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Signed in as YMGAdmin</p>
+          <h2>Agent run history</h2>
+        </div>
+        <button id="sign-out-button" class="button-secondary" type="button">Sign out</button>
+      </div>
+
+      <div class="notice">
+        <strong>Fixture test only.</strong>
+        This run checks fictional sample data. It scans zero websites and adds zero events to the public calendar.
+        Source discovery and collection are not enabled here.
+      </div>
+
+      <div class="actions">
+        <button id="run-fixture-button" type="button">Run fixture check</button>
+        <button id="refresh-button" class="button-secondary" type="button">Refresh history</button>
+      </div>
+      <p id="admin-message" class="status-message" role="status" aria-live="polite"></p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Requested</th>
+              <th scope="col">Candidates</th>
+              <th scope="col">Sources scanned</th>
+              <th scope="col">Fixture events</th>
+              <th scope="col">Needs review</th>
+              <th scope="col">Note</th>
+            </tr>
+          </thead>
+          <tbody id="runs-body">
+            <tr><td colspan="7">Sign in to view private run history.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
