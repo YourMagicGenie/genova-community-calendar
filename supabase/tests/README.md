@@ -52,6 +52,7 @@ Database tests in this repo target a disposable local project database. They are
 ## Current Tests
 
 - `test_refresh_source_names.sql` - verifies `refresh_source_names()` behavior, including comma-split sources, cleanup, idempotency, and malformed input handling
+- `test_rls_auto_enable_permissions.sql` - verifies the optional dashboard-created RLS helper is not callable by API roles and that its event trigger remains enabled
 
 ## Troubleshooting
 
