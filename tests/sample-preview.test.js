@@ -85,8 +85,8 @@ test('direct inherited app entry is disabled and contains no upstream database c
   const config = JSON.parse(readFileSync(new URL('../xmlui/config.json', `file://${__filename}`), 'utf8'));
   assert.match(html, /genova-sample-preview\.html/);
   assert.doesNotMatch(html, /shell\.js|config\.json|supabase-js|dzpdualvwspgqghrysyz/);
-  assert.equal(config.supabaseUrl, undefined);
-  assert.equal(config.supabasePublishableKey, undefined);
+  assert.equal(config.appGlobals.supabaseUrl, 'https://eginljyhnnczeeqxwfia.supabase.co');
+  assert.match(config.appGlobals.supabasePublishableKey, /^sb_publishable_/);
 });
 
 test('public source and city defaults contain Genova only and no approved publishers', () => {
