@@ -1,4 +1,4 @@
- may install this helper when automatic RLS is enabled.
+-- The dashboard may install this helper when automatic RLS is enabled.
 -- Local projects without that dashboard-created helper remain supported.
 BEGIN;
 SELECT plan(2);
