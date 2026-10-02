@@ -2,6 +2,7 @@
 
 - 2026-10-02 — Connected the inherited client configuration to the owner-controlled Genova Supabase project while keeping the public calendar on clearly labeled fictional fixtures; no live events or collection are enabled ([issue #11](https://github.com/YourMagicGenie/genova-community-calendar/issues/11)).
 - 2026-10-02 — Restricted the dashboard-created automatic-RLS helper from public API roles and verified that its event trigger still enables RLS on new public tables ([issue #41](https://github.com/YourMagicGenie/genova-community-calendar/issues/41)).
+- 2026-10-02 — Matched the repository migration filename to the version recorded in the owner Supabase project ([issue #43](https://github.com/YourMagicGenie/genova-community-calendar/issues/43)).
 
 This is the short, human-readable record of changes to the Porto Aperto | Genova calendar. [Git history](https://github.com/YourMagicGenie/genova-community-calendar/commits/main/) and pull requests contain the technical details. Entries under **Unreleased** are merged work toward the first usable release; they do not mean a live Genova event collection service exists.
 
