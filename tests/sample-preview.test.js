@@ -102,7 +102,7 @@ test('sample page labels itself as fictional and uses only local runtime assets'
   assert.match(html, /Preview only:[\s\S]*fictional example data/);
   assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
-  assert.doesNotMatch(html, /shell\\.js|config\\.json|supabase(?:-js|\\.co)/i);
+  assert.doesNotMatch(html, /shell\.js|config\.json|supabase(?:-js|\.co)/i);
 });
 
 test('sample page includes month navigation, a calendar grid and category checkboxes', () => {
