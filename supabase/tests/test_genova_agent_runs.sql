@@ -1,6 +1,6 @@
 -- Agent run history is private and writable only by trusted server code.
 BEGIN;
-SELECT plan(30);
+SELECT plan(31);
 
 SELECT has_table('public', 'agent_runs', 'agent run history table exists');
 SELECT has_column('public', 'agent_runs', 'run_mode', 'run mode is recorded');
@@ -35,6 +35,10 @@ SELECT ok(
 SELECT ok(
   has_table_privilege('authenticated', 'public.admin_users', 'SELECT'),
   'signed-in sessions can check their own admin marker'
+);
+SELECT ok(
+  has_table_privilege('service_role', 'public.admin_users', 'SELECT'),
+  'trusted Edge Functions can check the admin allowlist'
 );
 SELECT ok(
   NOT has_table_privilege('anon', 'public.admin_users', 'SELECT'),

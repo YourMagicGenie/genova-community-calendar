@@ -19,6 +19,9 @@ const PAYLOAD_FIELDS = new Set([
   'error_summary',
 ]);
 
+/** @typedef {{ run_id: string, status: 'running'|'succeeded'|'failed', instruction_revision: string, candidate_count: number, sources_scanned: number, events_found: number, events_needing_review: number, events_added: number, events_updated: number, events_cancelled: number, source_failures: [], error_summary: string|null }} FixtureCallbackPayload */
+/** @typedef {(request: Request, payload: FixtureCallbackPayload) => Response | Promise<Response>} FixtureCallbackHandler */
+
 function jsonResponse(status, message) {
   return Response.json({ error: message }, { status });
 }
@@ -59,6 +62,10 @@ export function validateFixtureCallback(value) {
   return true;
 }
 
+/**
+ * @param {FixtureCallbackHandler} handler
+ * @param {() => string | undefined} getSecret
+ */
 export function withGenovaAgentCallbackProtection(handler, getSecret) {
   return async (request) => {
     if (request.method !== 'POST') return jsonResponse(405, 'Use POST to report a fixture run.');

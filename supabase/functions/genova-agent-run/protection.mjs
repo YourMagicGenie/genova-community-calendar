@@ -5,6 +5,10 @@ const CORS_HEADERS = {
   'access-control-allow-methods': 'POST, OPTIONS',
 };
 
+/** @typedef {{ userClaims?: { id?: string } | null }} RunAuthContext */
+/** @typedef {(request: Request, details: { userId: string, mode: 'fixture', context: any }) => Response | Promise<Response>} GenovaRunHandler */
+/** @typedef {{ isAdmin: (userId: string, context: any) => boolean | Promise<boolean>, isConfigured: () => boolean }} RunProtectionOptions */
+
 function jsonResponse(status, message) {
   return Response.json({ error: message }, { status, headers: CORS_HEADERS });
 }
@@ -45,6 +49,10 @@ async function readJson(request, maxBytes) {
   }
 }
 
+/**
+ * @param {GenovaRunHandler} handler
+ * @param {RunProtectionOptions} options
+ */
 export function withGenovaAgentRunProtection(handler, { isAdmin, isConfigured }) {
   return async (request, context) => {
     if (request.method === 'OPTIONS') {

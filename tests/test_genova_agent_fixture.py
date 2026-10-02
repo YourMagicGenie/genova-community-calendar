@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -51,4 +52,5 @@ def test_manual_workflow_has_no_schedule_or_write_permissions():
     assert "schedule:" not in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
-    assert "mode: fixture" in workflow
+    assert re.search(r"options:\s*\n\s*-\s*fixture(?:\s|$)", workflow)
+    assert "${{ inputs.mode == 'fixture' }}" in workflow
