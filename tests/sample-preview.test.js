@@ -85,8 +85,8 @@ test('direct inherited app entry is disabled and contains no upstream database c
   const config = JSON.parse(readFileSync(new URL('../xmlui/config.json', `file://${__filename}`), 'utf8'));
   assert.match(html, /genova-sample-preview\.html/);
   assert.doesNotMatch(html, /shell\.js|config\.json|supabase-js|dzpdualvwspgqghrysyz/);
-  assert.equal(config.supabaseUrl, undefined);
-  assert.equal(config.supabasePublishableKey, undefined);
+  assert.equal(config.appGlobals.supabaseUrl, 'https://eginljyhnnczeeqxwfia.supabase.co');
+  assert.match(config.appGlobals.supabasePublishableKey, /^sb_publishable_/);
 });
 
 test('public source and city defaults contain Genova only and no approved publishers', () => {
@@ -102,6 +102,7 @@ test('sample page labels itself as fictional and uses only local runtime assets'
   assert.match(html, /Preview only:[\s\S]*fictional example data/);
   assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
+  assert.doesNotMatch(html, /shell\.js|config\.json|supabase(?:-js|\.co)/i);
 });
 
 test('sample page includes month navigation, a calendar grid and category checkboxes', () => {

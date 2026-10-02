@@ -8,7 +8,9 @@
   "appGlobals": {
     "xsVerbose": false,
     "xsVerboseLogMax": 200,
-    "strictDeterminism": false
+    "strictDeterminism": false,
+    "supabaseUrl": "https://eginljyhnnczeeqxwfia.supabase.co",
+    "supabasePublishableKey": "sb_publishable_0GG1fKOi7FinutZPb4XgTA_6M8G1NC-"
   },
   "resources": {
     "icon.l-user": "icons/l-user.svg",
