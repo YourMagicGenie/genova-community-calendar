@@ -44,6 +44,12 @@ not need another reset. If the database-state preflight reports unexpected
 schema, migration history, or Auth users, stop and review the remote state;
 do not edit the guard or reset the database.
 
+The pinned CLI's `supabase db advisors --linked` also tries to create a
+temporary login role, which asks for Database Read-write even when merely
+printing advisors. The workflow calls the documented read-only Advisors GET
+endpoint instead. Do not grant Database Read-write to work around that CLI
+behavior.
+
 ## Apply after the preview
 
 After the preview shows the expected repository migrations, run the workflow
@@ -57,10 +63,10 @@ prints the migration dry run, applies the migrations with
   tables; and
 - no Auth user was created as part of the schema change.
 
-The workflow then prints the Supabase Security Advisor findings. Review them
-in the Actions run before proceeding to the fixture test; `--fail-on none`
-shows findings without treating the report itself as an automatic migration
-failure.
+The workflow then prints the Supabase Security Advisor findings through the
+read-only Management API. Review them in the Actions run before proceeding to
+the fixture test; findings are reported for review without automatically
+failing the migration.
 
 This does not use `db reset --linked`, migration repair, or direct SQL edits to
 migration history. Supabase's `--include-all` option is used because the project
