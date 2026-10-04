@@ -8,7 +8,7 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
-- 2026-10-04 — Added a guarded, one-time Supabase migration preview/apply workflow. This PR does not apply migrations to the hosted project (issue #47).
+- 2026-10-04 — Added a guarded, one-time Supabase migration preview/apply workflow with remote postflight checks and a Security Advisor report for owner review. This PR does not apply migrations to the hosted project (issue #47).
 
 - 2026-10-04 — Added an admin-only fixture run with a `main`-restricted callback secret, retry and recovery handling, explicit Genova fixture validation, and private run history; it scans zero websites and writes zero public events (issues #5 and #45).
 
