@@ -54,6 +54,7 @@ def parse_snapshot(raw: str) -> dict[str, Any]:
 
     row = rows[0]
     versions = _string_list(row.get("migration_versions"), "migration history")
+    relations = _string_list(row.get("public_relations"), "public relation")
     tables = _string_list(row.get("public_tables"), "public table")
     rls_tables = _string_list(row.get("public_rls_tables"), "RLS table")
     auth_user_count = row.get("auth_user_count")
@@ -62,6 +63,7 @@ def parse_snapshot(raw: str) -> dict[str, Any]:
 
     return {
         "migration_versions": versions,
+        "public_relations": relations,
         "public_tables": tables,
         "public_rls_tables": rls_tables,
         "auth_user_count": auth_user_count,
@@ -91,8 +93,8 @@ def verify_state(
     if stage == "preflight":
         if snapshot["migration_versions"] != EXPECTED_STARTING_MIGRATIONS:
             raise BootstrapStateError("The remote migration history differs from the reviewed starting state.")
-        if snapshot["public_tables"]:
-            raise BootstrapStateError("The remote project already has public tables; no migration was applied.")
+        if snapshot["public_relations"]:
+            raise BootstrapStateError("The remote project already has public relations; no migration was applied.")
         if snapshot["auth_user_count"] != 0:
             raise BootstrapStateError("The remote project already has Auth users; no migration was applied.")
         return stage
