@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-04 — Switched the Supabase bootstrap Security Advisor report to the read-only API, avoiding the CLI's temporary login-role request for Database Read-write (issue #47).
+
 - 2026-10-04 — Listed every scoped token permission for the one-time Supabase bootstrap and made preview verify Security Advisor access before applying schema changes (issue #47).
 
 - 2026-10-04 — Clarified the scoped token permission needed for the bootstrap runner's IPv4 pooler and added an early check before any hosted migration step (issue #47).
