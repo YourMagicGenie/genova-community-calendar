@@ -40,7 +40,8 @@ The workflow checks the exact known starting state, previews all pending
 repository migrations with `supabase db push --dry-run --include-all`, and
 applies only when the owner manually selects `apply`. It verifies that every
 local migration is then present and that required admin/source/event/run
-tables have Row Level Security enabled.
+tables have Row Level Security enabled. It also prints the Supabase Security
+Advisor report for the owner to review before proceeding to the fixture test.
 
 The `--include-all` option is required because the project has a later
 migration recorded while earlier repository migrations are still missing.
