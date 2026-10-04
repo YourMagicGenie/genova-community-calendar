@@ -44,7 +44,8 @@ class BootstrapGuardTests(unittest.TestCase):
 
     def test_apply_run_prints_supabase_security_advisor_findings(self):
         workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/supabase-bootstrap.yml").read_text(encoding="utf-8")
-        self.assertIn("supabase db advisors --linked --type security --level info --fail-on none", workflow)
+        self.assertEqual(workflow.count("python scripts/report_genova_supabase_advisors.py"), 2)
+        self.assertNotIn("supabase db advisors --linked", workflow)
 
     def test_preflight_accepts_only_the_known_empty_project_state(self):
         snapshot = parse_snapshot(json.dumps(state()))
