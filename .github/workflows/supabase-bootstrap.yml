@@ -117,3 +117,10 @@ jobs:
           python scripts/verify_genova_supabase_bootstrap.py \
             --stage postflight \
             --snapshot "$RUNNER_TEMP/genova-supabase-postflight.json"
+
+      - name: Print Supabase Security Advisor findings for owner review
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db advisors --linked --type security --level info --fail-on none
