@@ -34,6 +34,10 @@ on its existing fictional preview.
 The run endpoint uses `@supabase/server` to validate a real user session and
 then checks the server-owned admin UUID allowlist. The callback endpoint uses a
 separate random credential and only accepts the fixed fixture result fields.
+Callback delivery retries temporary network and server errors. If a completion
+callback still cannot be recorded, the workflow tries to report failure; a
+later admin run marks any in-flight record older than 15 minutes as failed.
+Repeated callbacks are safe, and late callbacks cannot reopen a finished run.
 Neither the public page nor the GitHub runner receives a Supabase secret key.
 
 ## Owner setup needed before the first remote test
@@ -64,9 +68,15 @@ not an admin credential.
    with `Actions: write` and `Contents: read`. Save it only as the Supabase
    Edge Function secret `GENOVA_AGENT_GITHUB_TOKEN`.
 5. Generate a separate random callback credential. Store the same value as the
-   Supabase Edge Function secret `GENOVA_AGENT_CALLBACK_SECRET` and GitHub
-   repository Actions secret `GENOVA_AGENT_CALLBACK_TOKEN`. Do not send either
-   secret in chat or commit it.
+   Supabase Edge Function secret `GENOVA_AGENT_CALLBACK_SECRET` and the
+   `GENOVA_AGENT_CALLBACK_TOKEN` secret in GitHub's `genova-agent-main`
+   environment. In that environment's deployment branch rules, allow only the
+   `main` branch. Do not store the callback token as a repository-level secret,
+   send either secret in chat, or commit it.
+   If you previously added `GENOVA_AGENT_CALLBACK_TOKEN` under repository
+   **Settings → Secrets and variables → Actions → Repository secrets**, delete
+   that repository-level copy; the environment-level secret is the only copy
+   the fixture workflow needs.
 6. After GitHub Pages publishes the merged files, open
    `https://yourmagicgenie.github.io/genova-community-calendar/xmlui/admin.html`,
    sign in, and select **Run fixture check**. The private history should show
@@ -83,7 +93,10 @@ enabled by the fixture workflow.
   in-flight guard, explicit grants, and admin/non-admin row visibility using
   fictional users.
 - `tests/genova-agent-protection.test.mjs` checks that only an authenticated
-  allowlisted admin may request fixture mode and that callbacks cannot claim
-  source scans or public event writes.
-- `tests/test_genova_agent_fixture.py` checks the offline fictional fixture
-  output.
+  allowlisted admin may request fixture mode, stale-run recovery, idempotent
+  callback delivery, and that callbacks cannot claim source scans or public
+  event writes.
+- `tests/test_genova_agent_fixture.py` checks the offline fictional fixture,
+  explicit Genova city field, and workflow's main-only environment boundary.
+- `tests/test_genova_agent_callback.py` checks retry of transient callback
+  failures and immediate failure on permanent rejection.

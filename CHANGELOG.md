@@ -8,7 +8,7 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
-- 2026-10-02 — Added an admin-only, fixture-only remote run and private run history; its local example checks fictional events, scans zero websites, and writes zero public events. Also corrected the Supabase setup guide to use ordered migrations (issues #5 and #45).
+- 2026-10-02 — Added an admin-only fixture run with a `main`-restricted callback secret, retry and recovery handling, explicit Genova fixture validation, and private run history; it scans zero websites and writes zero public events (issues #5 and #45).
 
 - 2026-10-01 — Added the private database run-history foundation for the future Genova agent, including admin-only reads, server-only writes, instruction revision and result fields, and a single in-flight-run guard. This does not enable sign-in, discovery, collection, or scheduled jobs (issue #5).
 

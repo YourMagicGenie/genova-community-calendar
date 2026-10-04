@@ -23,12 +23,16 @@ concurrency:
 
 jobs:
   fixture:
-    if: ${{ inputs.mode == 'fixture' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.mode == 'fixture' }}
+    environment: genova-agent-main
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Check out the exact workflow revision
         uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -48,6 +52,7 @@ jobs:
         run: python scripts/genova_agent_fixture.py --json > fixture-result.json
 
       - name: Mark the private run as succeeded
+        id: mark_succeeded
         if: ${{ always() && steps.fixtures.outcome == 'success' }}
         env:
           GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
@@ -57,6 +62,14 @@ jobs:
 
       - name: Mark the private run as failed
         if: ${{ always() && steps.fixtures.outcome != 'success' }}
+        env:
+          GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
+          RUN_ID: ${{ inputs.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python scripts/post_genova_agent_callback.py --status failed
+
+      - name: Mark run failed if the success callback could not be recorded
+        if: ${{ always() && steps.fixtures.outcome == 'success' && steps.mark_succeeded.outcome == 'failure' }}
         env:
           GENOVA_AGENT_CALLBACK_TOKEN: ${{ secrets.GENOVA_AGENT_CALLBACK_TOKEN }}
           RUN_ID: ${{ inputs.run_id }}

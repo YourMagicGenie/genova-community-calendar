@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -22,6 +23,8 @@ COUNT_FIELDS = (
     "events_updated",
     "events_cancelled",
 )
+MAX_CALLBACK_ATTEMPTS = 3
+RETRYABLE_HTTP_CODES = {408, 425, 429, 500, 502, 503, 504}
 
 
 def make_payload(status, report_path=None):
@@ -62,23 +65,28 @@ def send_callback(payload):
     if len(secret) < 24:
         raise ValueError("The callback credential is not configured.")
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    request = Request(
-        CALLBACK_URL,
-        data=body,
-        headers={
-            "content-type": "application/json",
-            "x-genova-agent-callback-secret": secret,
-        },
-        method="POST",
-    )
-    try:
-        with urlopen(request, timeout=20) as response:
-            if response.status != 200:
-                raise ValueError("Supabase did not accept the fixture run update.")
-    except HTTPError as error:
-        raise ValueError("Supabase rejected the fixture run update (HTTP " + str(error.code) + ").") from None
-    except URLError:
-        raise ValueError("Supabase could not be reached to record the fixture run.") from None
+    for attempt in range(MAX_CALLBACK_ATTEMPTS):
+        request = Request(
+            CALLBACK_URL,
+            data=body,
+            headers={
+                "content-type": "application/json",
+                "x-genova-agent-callback-secret": secret,
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=20) as response:
+                if response.status != 200:
+                    raise ValueError("Supabase did not accept the fixture run update.")
+                return
+        except HTTPError as error:
+            if error.code not in RETRYABLE_HTTP_CODES or attempt + 1 == MAX_CALLBACK_ATTEMPTS:
+                raise ValueError("Supabase rejected the fixture run update (HTTP " + str(error.code) + ").") from None
+        except (URLError, TimeoutError):
+            if attempt + 1 == MAX_CALLBACK_ATTEMPTS:
+                raise ValueError("Supabase could not be reached to record the fixture run.") from None
+        time.sleep(2 ** attempt)
 
 
 def main():

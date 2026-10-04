@@ -1,5 +1,6 @@
 import { withSupabase } from "npm:@supabase/server@1";
 import { withGenovaAgentRunProtection } from "./protection.mjs";
+import { recoverStaleGenovaAgentRuns } from "./recovery.mjs";
 
 const GITHUB_REPOSITORY = "YourMagicGenie/genova-community-calendar";
 const GITHUB_API = "https://api.github.com";
@@ -26,6 +27,15 @@ function githubHeaders(token: string) {
 const runHandler = withGenovaAgentRunProtection(async (_request, { userId, context }) => {
   const token = Deno.env.get("GENOVA_AGENT_GITHUB_TOKEN")!;
   const supabaseAdmin = context.supabaseAdmin;
+
+  try {
+    const { error: recoveryError } = await recoverStaleGenovaAgentRuns(supabaseAdmin);
+    if (recoveryError) {
+      return jsonResponse(503, { error: "A previous fixture run could not be recovered. No new run was queued." });
+    }
+  } catch {
+    return jsonResponse(503, { error: "A previous fixture run could not be recovered. No new run was queued." });
+  }
 
   let latestCommit: Response;
   try {

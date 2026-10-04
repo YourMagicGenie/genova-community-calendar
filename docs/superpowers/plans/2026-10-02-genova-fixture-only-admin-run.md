@@ -25,7 +25,7 @@
 - Forged user metadata cannot grant admin status.
 - Only fixture mode is accepted; a fixture run scans zero sources and writes zero events.
 - Missing GitHub or callback configuration fails closed and records safe error state.
-- Callback requests require the separate shared callback credential and can only update a valid run once.
+- Callback requests require the separate shared callback credential, allow only valid state transitions, and treat retries idempotently.
 - No browser bundle or GitHub workflow contains a Supabase service-role/secret key.
 
 ## File Map
@@ -42,12 +42,13 @@
 
 ## Tasks
 
-- [ ] Write pgTAP assertions for explicit grants and admin-only run reads; run the focused database test red, then add the additive migration and confirm green.
-- [ ] Write Node tests for the run endpoint's mode/auth/admin checks and callback's constant-time credential validation/payload limits; confirm red before adding handlers.
-- [ ] Write Node tests for the fixture validator proving no network fetch and no public event writes; add a manual workflow that can only run the fixture validator.
-- [ ] Add the static admin page; test that it exposes no signup or admin-grant path, never loads the public preview, and gates run history behind a successful Auth session/admin check.
-- [ ] Document required Supabase and GitHub secrets, owner-only account provisioning, manual fixture verification, and limits; update the changelog.
-- [ ] Run the complete relevant Node, Python, SQL, Markdown-link, security, performance, and browser checks; obtain independent review before PR merge.
+- [x] Write pgTAP assertions for explicit grants and admin-only run reads; run the focused database test red, then add the additive migration and confirm green in GitHub Actions.
+- [x] Write Node tests for the run endpoint's mode/auth/admin checks and callback's constant-time credential validation/payload limits; confirm red before adding handlers.
+- [x] Write Node tests for the fixture validator proving no network fetch and no public event writes; add a manual workflow that only runs the fixture validator.
+- [x] Add the static admin page; test that it exposes no signup or admin-grant path, never loads the public preview, and gates run history behind a successful Auth session/admin check.
+- [x] Document required Supabase and GitHub secrets, owner-only account provisioning, manual fixture verification, and limits; update the changelog.
+- [x] Run relevant Node, Python, SQL, Markdown-link, security, performance, and browser checks; obtain independent review.
+- [x] Address review findings with a `main`-restricted callback secret, callback retries and fallback, stale-run recovery, idempotent status transitions, and explicit Genova fixture city checks.
 
 ## Self-review
 

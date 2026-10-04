@@ -4,6 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from scripts import genova_agent_fixture
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,6 +46,21 @@ def test_fixture_source_and_events_are_explicitly_fictional():
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     assert fixture["fictional"] is True
     assert all(event["source_url"].startswith("https://example.org/") for event in fixture["events"])
+    assert all(event["city"] == "genova" for event in fixture["events"])
+
+
+@pytest.mark.parametrize("city", [None, "savona", "Genova"])
+def test_fixture_rejects_events_without_the_exact_genova_city(city):
+    fixture_path = REPO_ROOT / "tests/fixtures/genova/agent-fixture.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    event = fixture["events"][0]
+    if city is None:
+        event.pop("city", None)
+    else:
+        event["city"] = city
+
+    with pytest.raises(ValueError, match="city must be genova"):
+        genova_agent_fixture.validate_fixture(fixture)
 
 
 def test_manual_workflow_has_no_schedule_or_write_permissions():
@@ -53,4 +72,7 @@ def test_manual_workflow_has_no_schedule_or_write_permissions():
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
     assert re.search(r"options:\s*\n\s*-\s*fixture(?:\s|$)", workflow)
-    assert "${{ inputs.mode == 'fixture' }}" in workflow
+    assert "${{ github.ref == 'refs/heads/main' && inputs.mode == 'fixture' }}" in workflow
+    assert "environment: genova-agent-main" in workflow
+    assert re.search(r"ref:\s*main\b", workflow)
+    assert "steps.mark_succeeded.outcome == 'failure'" in workflow

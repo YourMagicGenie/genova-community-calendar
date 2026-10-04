@@ -10,6 +10,7 @@
   "events": [
     {
       "fictional": true,
+      "city": "genova",
       "title": "Fictional jazz evening at Example Hall",
       "date": "2026-11-07",
       "time": "20:30",
@@ -20,6 +21,7 @@
     },
     {
       "fictional": true,
+      "city": "genova",
       "title": "Fictional art walk at Example Square",
       "date": "2026-11-08",
       "time": null,

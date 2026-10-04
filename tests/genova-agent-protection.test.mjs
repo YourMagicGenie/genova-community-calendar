@@ -217,3 +217,90 @@ test('run request bodies have a strict size limit', async () => {
   assert.equal(response.status, 413);
   assert.equal(actualOversize.status, 413);
 });
+
+test('stale fixture runs are failed after the recovery grace period', async () => {
+  const { recoverStaleGenovaAgentRuns } = await import('../supabase/functions/genova-agent-run/recovery.mjs');
+  const calls = {};
+  const query = {
+    update(value) { calls.patch = value; return this; },
+    in(column, values) { calls.in = [column, values]; return this; },
+    lt(column, value) { calls.lt = [column, value]; return this; },
+    then(resolve, reject) { return Promise.resolve({ error: null }).then(resolve, reject); },
+  };
+  const client = { from(table) { calls.table = table; return query; } };
+
+  await recoverStaleGenovaAgentRuns(client, new Date('2026-10-02T12:00:00.000Z'));
+
+  assert.equal(calls.table, 'agent_runs');
+  assert.deepEqual(calls.in, ['status', ['queued', 'running']]);
+  assert.deepEqual(calls.lt, ['queued_at', '2026-10-02T11:45:00.000Z']);
+  assert.equal(calls.patch.status, 'failed');
+  assert.equal(calls.patch.finished_at, '2026-10-02T12:00:00.000Z');
+});
+
+test('callback completion retries are idempotent and cannot reopen or downgrade runs', async () => {
+  const { recordGenovaAgentCallback } = await import('../supabase/functions/genova-agent-callback/update.mjs');
+  const run = { id: runId, run_mode: 'fixture', status: 'running' };
+
+  function clientFor(currentRun) {
+    return {
+      from(table) {
+        assert.equal(table, 'agent_runs');
+        return {
+          update(patch) {
+            const filters = [];
+            const builder = {
+              eq(column, value) { filters.push([column, value]); return this; },
+              in(column, values) { filters.push([column, values]); return this; },
+              select() { return this; },
+              async maybeSingle() {
+                const matches = filters.every(([column, value]) => {
+                  if (column === 'status' && Array.isArray(value)) return value.includes(currentRun.status);
+                  return currentRun[column] === value;
+                });
+                if (!matches) return { data: null, error: null };
+                Object.assign(currentRun, patch);
+                return { data: { id: currentRun.id }, error: null };
+              },
+            };
+            return builder;
+          },
+          select() {
+            const filters = [];
+            return {
+              eq(column, value) { filters.push([column, value]); return this; },
+              async maybeSingle() {
+                const matches = filters.every(([column, value]) => currentRun[column] === value);
+                return { data: matches ? { status: currentRun.status } : null, error: null };
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  const payload = {
+    run_id: runId,
+    status: 'succeeded',
+    instruction_revision: revision,
+    candidate_count: 1,
+    sources_scanned: 0,
+    events_found: 2,
+    events_needing_review: 1,
+    events_added: 0,
+    events_updated: 0,
+    events_cancelled: 0,
+    source_failures: [],
+    error_summary: null,
+  };
+  const first = await recordGenovaAgentCallback(clientFor(run), payload, new Date('2026-10-02T12:00:00.000Z'));
+  const duplicate = await recordGenovaAgentCallback(clientFor(run), payload, new Date('2026-10-02T12:01:00.000Z'));
+  const lateFailure = await recordGenovaAgentCallback(clientFor(run), { ...payload, status: 'failed', error_summary: 'Fixture validation failed.', candidate_count: 0, events_found: 0, events_needing_review: 0 }, new Date('2026-10-02T12:02:00.000Z'));
+
+  assert.equal(first.status, 200);
+  assert.equal(duplicate.status, 200);
+  assert.equal(duplicate.body.duplicate, true);
+  assert.equal(lateFailure.status, 409);
+  assert.equal(run.status, 'succeeded');
+});
