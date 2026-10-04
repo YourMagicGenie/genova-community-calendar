@@ -49,6 +49,11 @@ prints the migration dry run, applies the migrations with
   tables; and
 - no Auth user was created as part of the schema change.
 
+The workflow then prints the Supabase Security Advisor findings. Review them
+in the Actions run before proceeding to the fixture test; `--fail-on none`
+shows findings without treating the report itself as an automatic migration
+failure.
+
 This does not use `db reset --linked`, migration repair, or direct SQL edits to
 migration history. Supabase's `--include-all` option is used because the project
 already records a later RLS-helper migration while earlier repository
