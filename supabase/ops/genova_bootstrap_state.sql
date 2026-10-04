@@ -13,7 +13,16 @@ SELECT
       FROM pg_class AS c
       JOIN pg_namespace AS n ON n.oid = c.relnamespace
       WHERE n.nspname = 'public'
-        AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+    ),
+    '[]'::json
+  ) AS public_relations,
+  coalesce(
+    (
+      SELECT json_agg(c.relname ORDER BY c.relname)
+      FROM pg_class AS c
+      JOIN pg_namespace AS n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND c.relkind IN ('r', 'p')
     ),
     '[]'::json
   ) AS public_tables,
