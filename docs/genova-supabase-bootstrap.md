@@ -17,7 +17,7 @@ In the GitHub repository:
 1. Open **Settings → Environments** and create **genova-supabase-bootstrap**.
 2. Restrict deployments from that environment to the **main** branch.
 3. Add these two environment secrets:
-   - **SUPABASE_ACCESS_TOKEN**: a Supabase access token authorized for the Genova project.
+   - **SUPABASE_ACCESS_TOKEN**: create a personal access token from [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens) while signed in to an account with access to the Genova project.
    - **SUPABASE_DB_PASSWORD**: the database password chosen when the project was created.
 4. Do not paste either value into an issue, PR, chat, workflow input, or source file.
 
@@ -31,7 +31,7 @@ eginljyhnnczeeqxwfia.
 2. Select branch **main**.
 3. Leave **operation** set to **preview**.
 4. Review the run. It prints the migration history and the complete dry-run
-   list for supabase db push --include-all. It does not apply migrations.
+   list for `supabase db push --include-all`. It does not apply migrations.
 
 If the preflight stops, do not edit the guard or try a reset. The remote state
 must be reviewed first.
@@ -41,7 +41,7 @@ must be reviewed first.
 After the preview shows the expected repository migrations, run the workflow
 again from main and choose **operation: apply**. It repeats the preflight,
 prints the migration dry run, applies the migrations with
-supabase db push --include-all, then confirms:
+`supabase db push --include-all`, then confirms:
 
 - every local migration version is present remotely;
 - the application tables needed by the admin flow exist;
@@ -49,8 +49,8 @@ supabase db push --include-all, then confirms:
   tables; and
 - no Auth user was created as part of the schema change.
 
-This does not use db reset --linked, migration repair, or direct SQL edits to
-migration history. Supabase's --include-all option is used because the project
+This does not use `db reset --linked`, migration repair, or direct SQL edits to
+migration history. Supabase's `--include-all` option is used because the project
 already records a later RLS-helper migration while earlier repository
 migrations remain unapplied.
 
