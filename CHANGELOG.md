@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-04 — Clarified the scoped token permission needed for the bootstrap runner's IPv4 pooler and added an early check before any hosted migration step (issue #47).
+
 - 2026-10-04 — Added explicit static Worker configuration with a Preview block so Cloudflare can build PR previews without changing the fictional Genova calendar or enabling collection (issue #52).
 
 - 2026-10-04 — Added a guarded, one-time Supabase migration preview/apply workflow with remote postflight checks and a Security Advisor report for owner review. This PR does not apply migrations to the hosted project (issue #47).

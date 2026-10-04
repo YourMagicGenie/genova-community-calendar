@@ -17,7 +17,7 @@ In the GitHub repository:
 1. Open **Settings → Environments** and create **genova-supabase-bootstrap**.
 2. Restrict deployments from that environment to the **main** branch.
 3. Add these two environment secrets:
-   - **SUPABASE_ACCESS_TOKEN**: create a personal access token from [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens) while signed in to an account with access to the Genova project.
+   - **SUPABASE_ACCESS_TOKEN**: create a personal access token from [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens) while signed in to an account with access to the Genova project. Scope the token to this project and grant **Read** for **Project Settings**, **API Keys**, **API Key Secrets**, and **Connection Pooling**. The last permission lets `supabase link` cache the IPv4 pooler URL used by GitHub's runner.
    - **SUPABASE_DB_PASSWORD**: the database password chosen when the project was created.
 4. Do not paste either value into an issue, PR, chat, workflow input, or source file.
 
@@ -33,8 +33,12 @@ eginljyhnnczeeqxwfia.
 4. Review the run. It prints the migration history and the complete dry-run
    list for `supabase db push --include-all`. It does not apply migrations.
 
-If the preflight stops, do not edit the guard or try a reset. The remote state
-must be reviewed first.
+If the workflow stops because no IPv4 pooler URL was cached, check that the
+scoped access token has **Connection Pooling → Read** for this project. Create a
+replacement token with that permission and replace the GitHub environment's
+`SUPABASE_ACCESS_TOKEN` secret; the database password does not need another
+reset. If the database-state preflight stops, do not edit the guard or try a
+reset. Review the remote state first.
 
 ## Apply after the preview
 
