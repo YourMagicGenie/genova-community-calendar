@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-02 — Added an admin-only fixture run with a `main`-restricted callback secret, retry and recovery handling, explicit Genova fixture validation, and private run history; it scans zero websites and writes zero public events (issues #5 and #45).
+
 - 2026-10-01 — Added the private database run-history foundation for the future Genova agent, including admin-only reads, server-only writes, instruction revision and result fields, and a single in-flight-run guard. This does not enable sign-in, discovery, collection, or scheduled jobs (issue #5).
 
 - 2026-10-01 — Standardized the inherited pipeline and local test runtime on Python 3.12, pinned direct Python dependencies, added weekly Dependabot updates and a pip-audit check, and added an explicit offline ICS fixture check (issue #19).

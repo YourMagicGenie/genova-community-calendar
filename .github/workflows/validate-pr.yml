@@ -76,6 +76,17 @@ jobs:
       - name: Run load-events authorization tests
         run: node --test tests/load-events-protection.test.mjs
 
+      - name: Run fixture-only agent and admin-page tests
+        run: node --test tests/genova-agent-protection.test.mjs tests/genova-admin-page.test.mjs
+
+      - name: Set up Deno for Edge Function type checks
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type check Genova admin Edge Functions
+        run: deno check supabase/functions/genova-agent-run/index.ts supabase/functions/genova-agent-callback/index.ts
+
   browser-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
