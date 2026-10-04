@@ -17,7 +17,7 @@ In the GitHub repository:
 1. Open **Settings → Environments** and create **genova-supabase-bootstrap**.
 2. Restrict deployments from that environment to the **main** branch.
 3. Add these two environment secrets:
-   - **SUPABASE_ACCESS_TOKEN**: create a personal access token from [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens) while signed in to an account with access to the Genova project. Scope the token to this project and grant **Read** for **Project Settings**, **API Keys**, **API Key Secrets**, and **Connection Pooling**. The last permission lets `supabase link` cache the IPv4 pooler URL used by GitHub's runner.
+   - **SUPABASE_ACCESS_TOKEN**: create a personal access token from [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens) while signed in to an account with access to the Genova project. Scope the token to this project and grant **Read** for all six: **Project Settings**, **API Keys**, **API Key Secrets**, **Connection Pooling**, **Database**, and **Advisors**. The first three let `supabase link` read project configuration and keys. Connection Pooling lets it cache the IPv4 pooler URL used by GitHub's runner. Database permits the read-only preflight/postflight SQL query; Advisors permits the security report.
    - **SUPABASE_DB_PASSWORD**: the database password chosen when the project was created.
 4. Do not paste either value into an issue, PR, chat, workflow input, or source file.
 
@@ -30,15 +30,19 @@ eginljyhnnczeeqxwfia.
 1. Open **Actions → Bootstrap Genova Supabase schema → Run workflow**.
 2. Select branch **main**.
 3. Leave **operation** set to **preview**.
-4. Review the run. It prints the migration history and the complete dry-run
-   list for `supabase db push --include-all`. It does not apply migrations.
+4. Review the run. It validates the empty starting state, checks Security
+   Advisor access, and prints the migration history and complete dry-run list
+   for `supabase db push --include-all`. It does not apply migrations.
 
-If the workflow stops because no IPv4 pooler URL was cached, check that the
-scoped access token has **Connection Pooling → Read** for this project. Create a
-replacement token with that permission and replace the GitHub environment's
-`SUPABASE_ACCESS_TOKEN` secret; the database password does not need another
-reset. If the database-state preflight stops, do not edit the guard or try a
-reset. Review the remote state first.
+A `403` with `missing_permissions: ["database_read"]` at the state query means
+**Database → Read** is missing; a `403` at the advisor check means **Advisors →
+Read** is missing. If no IPv4 pooler URL was cached, **Connection Pooling →
+Read** is missing or the pooler is unavailable. Create one replacement token
+with all six Read permissions above, replace the GitHub environment's
+`SUPABASE_ACCESS_TOKEN` secret, and rerun preview. The database password does
+not need another reset. If the database-state preflight reports unexpected
+schema, migration history, or Auth users, stop and review the remote state;
+do not edit the guard or reset the database.
 
 ## Apply after the preview
 
