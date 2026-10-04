@@ -32,7 +32,8 @@ postflight checks. Do not create users, deploy functions, or scan sources here.
    the Supabase CLI version and restrict secrets to the project environment.
 5. Document the owner-only setup and update the changelog.
 6. Run the focused test, Python compilation, YAML validation, full project
-   checks in GitHub Actions, and review the workflow diff before merge.
+   checks in GitHub Actions, review the workflow diff, and include the hosted
+   Security Advisor report for the owner after migrations apply.
 
 ## Safety behavior
 
