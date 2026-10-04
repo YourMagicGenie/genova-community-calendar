@@ -60,6 +60,14 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
+      - name: Require an IPv4 pooler connection for the runner
+        shell: bash
+        run: |
+          if [ ! -s supabase/.temp/pooler-url ]; then
+            echo "Supabase link did not obtain the IPv4 pooler URL. The scoped access token needs Connection Pooling: Read for this project; verify the pooler is available, then retry preview."
+            exit 1
+          fi
+
       - name: Show current migration history
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
