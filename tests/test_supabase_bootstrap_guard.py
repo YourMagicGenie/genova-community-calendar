@@ -14,11 +14,12 @@ EXPECTED_START = ["20261002104614"]
 REQUIRED_TABLES = {"admin_users", "agent_runs", "events", "feeds", "feed_source_reviews"}
 
 
-def state(*, migrations=None, tables=None, rls_tables=None, auth_users=0):
+def state(*, migrations=None, relations=None, tables=None, rls_tables=None, auth_users=0):
     return {
         "rows": [
             {
                 "migration_versions": EXPECTED_START if migrations is None else migrations,
+                "public_relations": [] if relations is None else relations,
                 "public_tables": [] if tables is None else tables,
                 "public_rls_tables": [] if rls_tables is None else rls_tables,
                 "auth_user_count": auth_users,
@@ -36,6 +37,11 @@ class BootstrapGuardTests(unittest.TestCase):
         self.assertGreaterEqual(workflow.count("secrets.SUPABASE_ACCESS_TOKEN"), 5)
         self.assertGreaterEqual(workflow.count("secrets.SUPABASE_DB_PASSWORD"), 5)
 
+    def test_query_uses_a_supported_json_output_flag(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/supabase-bootstrap.yml").read_text(encoding="utf-8")
+        self.assertNotIn("--output-format json", workflow)
+        self.assertEqual(workflow.count("--output json"), 2)
+
     def test_preflight_accepts_only_the_known_empty_project_state(self):
         snapshot = parse_snapshot(json.dumps(state()))
         self.assertEqual(verify_state(snapshot, "preflight"), "preflight")
@@ -46,8 +52,13 @@ class BootstrapGuardTests(unittest.TestCase):
             verify_state(snapshot, "preflight")
 
     def test_preflight_rejects_existing_public_tables(self):
-        snapshot = parse_snapshot(json.dumps(state(tables=["events"])))
-        with self.assertRaisesRegex(BootstrapStateError, "public tables"):
+        snapshot = parse_snapshot(json.dumps(state(relations=["events"], tables=["events"])))
+        with self.assertRaisesRegex(BootstrapStateError, "public relations"):
+            verify_state(snapshot, "preflight")
+
+    def test_preflight_rejects_public_sequences_too(self):
+        snapshot = parse_snapshot(json.dumps(state(relations=["events_id_seq"])))
+        with self.assertRaisesRegex(BootstrapStateError, "public relations"):
             verify_state(snapshot, "preflight")
 
     def test_preflight_rejects_existing_auth_users(self):
