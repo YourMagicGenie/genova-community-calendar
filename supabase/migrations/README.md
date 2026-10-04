@@ -19,15 +19,10 @@ supabase test db supabase/tests/
 
 ## Current owner-controlled Genova project state
 
-Checked on 2026-10-04: the project records only
-`20261002104614_revoke_anon_exec_on_rls_auto_enable`. The `public` schema has
-no application tables, and no Edge Functions are deployed. The earlier
-repository migrations, including the event/source schema and private agent run
-history, remain unapplied. No Auth users, real sources, or events have been
-added.
+Checked on 2026-10-04: [bootstrap apply run 37234535292](https://github.com/YourMagicGenie/genova-community-calendar/actions/runs/37234535292) applied all 17 previously missing repository migrations. All 18 local and remote versions match; the project has 14 RLS-enabled public tables and no Auth users, feeds, or events. Edge Functions are not deployed. The postflight Security Advisor reported inherited function, materialized-view, and extension warnings tracked in [issue #59](https://github.com/YourMagicGenie/genova-community-calendar/issues/59).
 
 The existing RLS-helper migration was applied before the application schema.
-Do not remove its history or reset the project. The supported one-time
+Do not remove its history or reset the project. The completed one-time
 bootstrap is documented in
 [`docs/genova-supabase-bootstrap.md`](../../docs/genova-supabase-bootstrap.md)
 and implemented by the manually triggered
