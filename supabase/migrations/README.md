@@ -55,9 +55,10 @@ migrations; review the remote state before proceeding.
 1. Add one timestamped migration file for each schema change.
 2. Test a clean local reset and `supabase test db supabase/tests/`.
 3. Review the migration and RLS behavior before deployment.
-4. Verify migration history, project tables, and Supabase security/performance
-   advisors after deployment.
-5. Update this guide when the hosted migration state changes.
+4. Use the guarded [single-migration workflow](../../docs/genova-supabase-migrations.md)
+   to preview, then separately apply one new migration from `main`.
+5. Verify migration history, project tables, and Supabase security/performance
+   advisors after deployment. Update this guide when hosted state changes.
 
 Files in `supabase/ddl/` are inherited schema snapshots, not a substitute for
 the ordered migration history.
