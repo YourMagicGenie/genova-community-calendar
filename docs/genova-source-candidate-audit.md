@@ -35,8 +35,7 @@ The owner's whitelist controls which publishers are considered for collection.
 For each active source, configure only the public event index needed for the
 calendar. Check the exact path against the site's crawler instructions before
 a run; skip a disallowed path, do not evade the rule through another route, and
-continue the other sources. If crawler instructions cannot be retrieved
-reliably, skip that source for the run. A clear site-level no-automation rule
+continue the other sources. Treat an HTTP 404 for robots.txt as no published crawler rules and continue under the low request limit. If the robots request returns 401/403/429/5xx or a network error, skip that source for the run. A clear site-level no-automation rule
 pauses that source. This practical policy is not a claim that robots.txt is
 legal authorization or a blanket assessment of every possible database right.
 
