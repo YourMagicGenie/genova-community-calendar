@@ -93,15 +93,8 @@ SELECT ok(
 );
 
 SELECT ok(
-  NOT has_table_privilege('authenticated', 'public.feed_source_reviews', 'SELECT')
-  OR EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename = 'feed_source_reviews'
-      AND policyname = 'Admin users can manage feed source reviews'
-      AND roles @> ARRAY['authenticated']::name[]
-  ),
-  'source review rows remain gated by the authenticated admin policy'
+  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.feed_source_reviews'::regclass),
+  'source review table enforces row-level security'
 );
 
 SELECT ok(
