@@ -7,6 +7,12 @@ import argparse
 import sys
 from pathlib import Path
 
+# Running this file directly sets sys.path[0] to scripts/, so the repository
+# root is not importable as the "scripts" namespace package without this.
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
 from scripts.verify_genova_supabase_bootstrap import (
     BootstrapStateError,
     REQUIRED_RLS_TABLES,
