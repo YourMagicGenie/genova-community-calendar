@@ -32,6 +32,9 @@ GRANT EXECUTE ON FUNCTION public.get_my_google_email() TO authenticated, service
 -- closed. The hosted project was checked before authoring this migration.
 DO $$
 BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job) THEN
+    RAISE EXCEPTION 'Refusing to move pg_net while scheduled jobs exist';
+  END IF;
   IF EXISTS (SELECT 1 FROM net.http_request_queue) THEN
     RAISE EXCEPTION 'Refusing to move pg_net while queued requests exist';
   END IF;
