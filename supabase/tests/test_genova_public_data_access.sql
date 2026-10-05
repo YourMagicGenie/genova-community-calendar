@@ -22,8 +22,9 @@ SELECT ok(
 
 SELECT ok(
   NOT has_table_privilege('anon', 'public.events', 'SELECT')
-  AND NOT has_table_privilege('authenticated', 'public.events', 'SELECT'),
-  'browser roles cannot query raw event records directly'
+  AND NOT has_table_privilege('authenticated', 'public.events', 'SELECT')
+  AND has_table_privilege('service_role', 'public.events', 'SELECT'),
+  'raw event records are server-only while trusted collection retains access'
 );
 
 SELECT ok(
