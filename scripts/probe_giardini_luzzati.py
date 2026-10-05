@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""One-page, read-only probe for the first Giardini Luzzati event.
+
+Checks robots.txt before making exactly one request to the fixed public event URL.
+Prints only calendar facts; never stores or prints the source HTML.
+"""
+from __future__ import annotations
+
+import json
+import re
+import sys
+import time
+from datetime import date, datetime
+from html.parser import HTMLParser
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.robotparser import RobotFileParser
+from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
+
+SOURCE_NAME = "Giardini Luzzati / Spazio Comune"
+EVENT_URL = "https://www.spazio-comune.org/prodotto/nessuno-ci-insegna-a-cadere/"
+USER_AGENT = "GenovaCommunityCalendarProbe/0.1 (+https://github.com/YourMagicGenie/genova-community-calendar)"
+MAX_RESPONSE_BYTES = 2_000_000
+MAX_CRAWL_DELAY_SECONDS = 120
+ROME = ZoneInfo("Europe/Rome")
+MONTHS = {
+    "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4,
+    "maggio": 5, "giugno": 6, "luglio": 7, "agosto": 8,
+    "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12,
+}
+
+
+class ProbeSkipped(Exception):
+    """The requested page should not be fetched in this run."""
+
+
+class _Response:
+    def __init__(self, status: int, url: str, body: bytes):
+        self.status = status
+        self.url = url
+        self._body = body
+
+    def read(self, limit: int = MAX_RESPONSE_BYTES + 1) -> bytes:
+        return self._body[:limit]
+
+
+def _http_get(url: str) -> _Response:
+    request = Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,text/plain;q=0.9,*/*;q=0.1",
+    })
+    try:
+        with urlopen(request, timeout=15) as response:
+            body = response.read(MAX_RESPONSE_BYTES + 1)
+            return _Response(response.status, response.geturl(), body)
+    except HTTPError as error:
+        return _Response(error.code, error.geturl(), error.read(MAX_RESPONSE_BYTES + 1))
+    except (URLError, TimeoutError, OSError) as error:
+        raise ProbeSkipped("network error while checking source") from error
+
+
+def _robots_rules(url: str, get=_http_get) -> tuple[RobotFileParser | None, int]:
+    parts = urlsplit(url)
+    robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
+    response = get(robots_url)
+    if response.status == 404:
+        # A missing robots file publishes no path restrictions.
+        return None, 0
+    if response.status != 200:
+        raise ProbeSkipped(f"robots.txt returned HTTP {response.status}")
+    if urlsplit(response.url).hostname != parts.hostname:
+        raise ProbeSkipped("robots.txt redirected to another host")
+    if len(response.read()) > MAX_RESPONSE_BYTES:
+        raise ProbeSkipped("robots.txt exceeded the response-size limit")
+
+    parser = RobotFileParser(robots_url)
+    parser.parse(response.read().decode("utf-8", errors="replace").splitlines())
+    delay = parser.crawl_delay(USER_AGENT)
+    if delay is None:
+        delay = parser.crawl_delay("*")
+    return parser, int(delay or 0)
+
+
+class _FactsParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.headings: list[str] = []
+        self.text: list[str] = []
+        self._capture: str | None = None
+        self._buffer: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag in {"script", "style", "noscript"}:
+            self._skip_depth += 1
+            return
+        if self._skip_depth:
+            return
+        if tag in {"h1", "title"}:
+            self._capture = tag
+            self._buffer = []
+
+    def handle_endtag(self, tag):
+        if tag in {"script", "style", "noscript"} and self._skip_depth:
+            self._skip_depth -= 1
+            return
+        if self._capture == tag:
+            value = " ".join(" ".join(self._buffer).split())
+            if value:
+                self.headings.append(value)
+            self._capture = None
+            self._buffer = []
+
+    def handle_data(self, data):
+        if self._skip_depth:
+            return
+        clean = " ".join(data.split())
+        if clean:
+            self.text.append(clean)
+            if self._capture:
+                self._buffer.append(clean)
+
+
+def _parse_italian_start(text: str) -> str | None:
+    pattern = re.compile(
+        r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|"
+        r"luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})"
+        r"(?:.{0,30}?\b(?:ore\s*)?(\d{1,2})[.:](\d{2}))?",
+        re.IGNORECASE,
+    )
+    match = pattern.search(text)
+    if not match:
+        return None
+    day, month_name, year, hour, minute = match.groups()
+    month = MONTHS[month_name.casefold()]
+    if hour is None:
+        return date(int(year), month, int(day)).isoformat()
+    local = datetime(int(year), month, int(day), int(hour), int(minute), tzinfo=ROME)
+    return local.isoformat()
+
+
+def _event_fields(html: str) -> dict:
+    parser = _FactsParser()
+    parser.feed(html)
+    title = next((heading for heading in parser.headings if heading), None)
+    body_text = " ".join(parser.text)
+    start_at = _parse_italian_start(body_text)
+    venue_match = re.search(
+        r"Giardini\s+Luzzati(?:\s*[-–]\s*(?:Spazio Comune|Area Archeologica))?",
+        body_text,
+        re.IGNORECASE,
+    )
+    venue = venue_match.group(0).strip() if venue_match else None
+    return {
+        "title": title,
+        "start_at": start_at,
+        "venue": venue,
+    }
+
+
+def probe_event(url: str = EVENT_URL, get=_http_get, sleeper=time.sleep) -> dict:
+    parsed_url = urlsplit(url)
+    fixed_url = urlsplit(EVENT_URL)
+    if (parsed_url.scheme, parsed_url.hostname, parsed_url.path) != (
+        fixed_url.scheme, fixed_url.hostname, fixed_url.path
+    ):
+        raise ProbeSkipped("URL is outside the fixed one-event probe")
+
+    robots, crawl_delay = _robots_rules(url, get=get)
+    if robots is not None and not robots.can_fetch(USER_AGENT, url):
+        raise ProbeSkipped("robots.txt disallows this event path")
+    if crawl_delay > MAX_CRAWL_DELAY_SECONDS:
+        raise ProbeSkipped("published crawl delay exceeds the probe's wait limit")
+    if crawl_delay:
+        sleeper(crawl_delay)
+
+    response = get(url)
+    if response.status != 200:
+        raise ProbeSkipped(f"event page returned HTTP {response.status}")
+    if urlsplit(response.url).hostname != fixed_url.hostname:
+        raise ProbeSkipped("event page redirected to another host")
+    html_bytes = response.read()
+    if len(html_bytes) > MAX_RESPONSE_BYTES:
+        raise ProbeSkipped("event page exceeded the response-size limit")
+    facts = _event_fields(html_bytes.decode("utf-8", errors="replace"))
+    if not facts["title"]:
+        raise ProbeSkipped("could not identify an event title")
+    return {
+        "status": "ok",
+        "source": SOURCE_NAME,
+        "title": facts["title"],
+        "start_at": facts["start_at"],
+        "venue": facts["venue"],
+        "url": url,
+    }
+
+
+def main() -> int:
+    try:
+        result = probe_event()
+    except ProbeSkipped as error:
+        result = {"status": "skipped", "source": SOURCE_NAME, "reason": str(error), "url": EVENT_URL}
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
