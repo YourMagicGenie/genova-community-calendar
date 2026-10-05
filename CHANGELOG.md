@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-04 — Added a guarded manual preview/apply path for one later Genova database migration, with remote history and RLS checks (issue #59).
+
 - 2026-10-04 — Restricted inherited privileged refresh and trigger functions from direct public execution and pinned their search paths after the hosted schema bootstrap exposed Security Advisor warnings (issue #59).
 
 - 2026-10-04 — Switched the Supabase bootstrap Security Advisor report to the read-only API, avoiding the CLI's temporary login-role request for Database Read-write (issue #47).

@@ -1,0 +1,125 @@
+name: Apply reviewed Genova Supabase migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Preview one pending migration, or apply it to the Genova project
+        required: true
+        type: choice
+        options:
+          - preview
+          - apply
+        default: preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genova-supabase-schema
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    environment: genova-supabase-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROJECT_REF: eginljyhnnczeeqxwfia
+    steps:
+      - name: Check out main without a persistent GitHub token
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up the pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.119.0
+
+      - name: Check required credentials are present
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing SUPABASE_ACCESS_TOKEN"; exit 1; }
+          test -n "$SUPABASE_DB_PASSWORD" || { echo "Missing SUPABASE_DB_PASSWORD"; exit 1; }
+
+      - name: Link the fixed Genova project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Require an IPv4 pooler connection
+        shell: bash
+        run: |
+          test -s supabase/.temp/pooler-url || {
+            echo "Supabase link did not cache the IPv4 pooler URL."
+            exit 1
+          }
+
+      - name: Show current migration history
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase migration list --linked
+
+      - name: Capture read-only project state
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase db query --linked --agent yes --output json \
+            -f supabase/ops/genova_bootstrap_state.sql \
+            > "$RUNNER_TEMP/genova-supabase-preflight.json"
+
+      - name: Require exactly one latest migration pending and core RLS intact
+        run: |
+          python scripts/verify_genova_single_migration.py \
+            --stage preflight \
+            --snapshot "$RUNNER_TEMP/genova-supabase-preflight.json"
+
+      - name: Preview the pending migration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --dry-run --linked
+
+      - name: Apply the reviewed migration
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked --yes
+
+      - name: Show resulting migration history
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase migration list --linked
+
+      - name: Capture resulting read-only project state
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase db query --linked --agent yes --output json \
+            -f supabase/ops/genova_bootstrap_state.sql \
+            > "$RUNNER_TEMP/genova-supabase-postflight.json"
+
+      - name: Verify migration history and core RLS
+        if: ${{ inputs.operation == 'apply' }}
+        run: |
+          python scripts/verify_genova_single_migration.py \
+            --stage postflight \
+            --snapshot "$RUNNER_TEMP/genova-supabase-postflight.json"
+
+      - name: Print Security Advisor findings for review
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python scripts/report_genova_supabase_advisors.py
