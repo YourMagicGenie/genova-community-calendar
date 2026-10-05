@@ -1,9 +1,10 @@
 # Genova source review states
 
 New feed and scraper registrations enter the `feeds` table as `pending`. This
-records a proposal; it does not authorize collection. The collector reads only
-rows whose status is `active` and stops if it cannot read the database approval
-state.
+records a candidate; it does not place it on the owner's collection whitelist.
+The owner can promote selected staple publishers/venues to `active`. The
+collector reads only `active` sources and stops if it cannot read that state.
+An active source is still subject to path-level crawler rules at every run.
 
 ## Review information
 
@@ -36,3 +37,18 @@ or change source rows. The frontend must never receive the service-role key.
 The admin review page and live project connection are subsequent work under
 Issue #5. Until an owner-controlled Supabase project is configured, these
 migrations are exercised only by disposable local Supabase in GitHub Actions.
+
+## Whitelist and crawler behavior
+
+`active` means the maintainer selected the publisher for the calendar. It does
+not authorize every page on the publisher's host. Configure a small set of
+public event index URLs for each source, check `robots.txt` for each requested
+path, skip disallowed paths, and continue other allowed sources. Treat an HTTP 404 for robots.txt as no published crawler rules and continue under the project's low request limits. If the robots request returns 401/403/429/5xx or a network error, skip only that source for the current run and report why. A clearly published no-automation rule pauses that source.
+Do not change hosts or paths to evade a restriction.
+
+For the first pilot, request one listing page, store event title/date/time,
+location when available, publisher name, and direct event URL, and do not copy
+descriptions or images. Refresh no more than daily, sequentially, with caching,
+conditional requests when supported, and backoff on rate limits or server
+errors. This is a lightweight operating rule, not an event-by-event legal
+approval workflow.

@@ -1,6 +1,6 @@
 # Genova event agent operating contract
 
-This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission to scan websites. Until the admin-only controls and approved-source workflow in Issue #5 are implemented, do not run collection or connect credentials.
+This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission for recurring collection. Do not connect credentials or run production collection until the admin-only controls and approved-source workflow in Issue #5 are implemented. A separate manual one-event probe may make one public page request only after checking that exact path in robots.txt; it has no credentials, database connection, or write path.
 
 ## Pilot boundary and purpose
 
@@ -14,20 +14,18 @@ This file defines the operating rules for a future Genova event-discovery agent.
 - Look for publishers, venues, organizers, institutions, event platforms, and directories that publish relevant events in the pilot area.
 - For every candidate, record its name, canonical publisher URL, evidence that it publishes relevant Genova events, likely event types, geographic fit, proposed collection method, access or rate-limit notes, and the reason it was discovered.
 - Prefer, in order: an official ICS feed or API; a structured public event page; then a source-specific method that respects the publisher's published access rules.
-- Keep discovery separate from collection. A URL, search result, source suggestion, pull request, or merge is never approval to scan.
-- Collect event data only from sources that the maintainer has explicitly approved and that the source directory marks `active`. If approval state cannot be checked, stop without collecting.
-- Do not bypass login walls, paywalls, technical controls, or rate limits. Do not scrape private or login-protected social content. If access rules are unclear, leave the source pending for maintainer review.
+- Keep discovery separate from collection. The maintainer chooses which publishers and venues belong on the source whitelist; a source is collectable only while its directory row is `active`. Source inclusion is an owner product choice, not a separate approval of every event or a promise that every route is usable.
+- Configure the public listing URL(s) for each active source. Before requesting a URL, check that path against the publisher's current `robots.txt`; skip any disallowed path and continue other allowed paths and other active sources. Treat an HTTP 404 for robots.txt as no published crawler rules and continue under the project's low request limits. If the robots request returns 401/403/429/5xx or a network error, skip that source for this run and report why. Do not bypass a restriction by switching to an alternate path or host solely to evade it; use a clearly publisher-supported feed/API when available.
+- A clear publisher rule against automated collection pauses that source. Do not bypass login walls, paywalls, technical blocks, or rate limits. Do not scrape private or login-protected social content. Record only practical access configuration and exceptions; do not demand a legal memo for every event title.
 
 ## Event record
 
 For each event, preserve the publisher and original event URL. Return these fields when available:
 
-- title;
-- start and end date/time in `Europe/Rome`, including the correct UTC offset;
-- venue and location within the approved geography;
-- a short description based on the source;
-- price or free-entry status only when stated by the publisher;
-- booking or ticket link when provided;
+- event title;
+- start and end date/time in `Europe/Rome`, when listed, including the correct UTC offset;
+- venue/location when listed, to confirm the event fits the approved geography;
+- the direct original event URL and publisher name;
 - one or more category guesses and confidence;
 - the source name, canonical URL, and collection method;
 - a brief evidence note pointing to the source detail used.
@@ -61,7 +59,8 @@ Multiple categories may apply. `date-night` is an optional extra tag, never a re
 
 ## Access, credentials, and costs
 
-- Use public pages and approved unauthenticated feeds by default.
+- Use public event indexes and publisher-supported unauthenticated feeds by default. For the initial pilot, fetch one listing/index page per source and do not fetch every event detail page.
+- Keep automated requests sequential and no more frequent than once per source per day after the initial pilot. Use caching/conditional requests where supported, honor published crawl delays, identify the calendar in the User-Agent, and back off on rate-limit or server-error responses.
 - Never put secrets, service-role keys, personal access tokens, or private source credentials in this file, event records, logs, or client-side code.
 - Do not enable paid AI, search, scraping, or hosting services; recurring scans; or scheduled agent runs unless the maintainer has reviewed expected cost, quotas, access, and recovery steps and explicitly approved them.
 - Enforce admin authorization on the server for discovery triggers, source decisions, run history, and corrections. A hidden button or private-looking page is not authorization.
@@ -71,8 +70,11 @@ Multiple categories may apply. `date-night` is an optional extra tag, never a re
 
 When the approved admin workflow exists, each run should report its trigger and time, this instruction file's version/commit, candidates discovered, approved active sources scanned, events added/updated/cancelled, items needing review, and source-level failures. Do not expose private review notes or admin run history on the public calendar.
 
-The Issue #5 fixture workflow is the only current run path: it validates
-fictional fixtures, scans no websites, and writes no events. It does not yet
-implement source discovery, a review queue, collection, or calendar publishing.
-Use this file as the agent's reviewed operating contract; do not treat the
-fixture workflow as permission to collect from any source.
+The Issue #5 fixture workflow remains the admin-agent test path: it validates
+fictional fixtures, scans no websites, and writes no events. The separate
+Giardini Luzzati probe is a manual, one-event, read-only check. It first checks
+robots.txt for the exact fixed event URL, prints only the calendar facts, and
+never writes to Supabase or the public calendar. Neither workflow implements
+regular source discovery or production collection. Use this file as the
+agent's reviewed operating contract; do not treat either workflow as approval
+for recurring collection.

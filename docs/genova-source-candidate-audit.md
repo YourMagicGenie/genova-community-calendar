@@ -1,12 +1,13 @@
 # Initial Genova source candidate audit
 
-**Reviewed:** 2026-10-01  
-**Status:** Discovery notes only. None of these sources is approved or active.
+**Reviewed:** 2026-10-05  
+**Status:** Discovery notes only. Giardini Luzzati / Spazio Comune is the owner's selected first-source candidate; no project collector has fetched it yet.
 
 This is a small research snapshot for the maintainer, not the operational source directory. I inspected public event index pages and their descriptions. I did not collect event records, run a scraper, or confirm an ICS/API endpoint. Candidate review should distinguish use of basic event facts from reuse of publisher-created text, images, or a database. No candidate is approved for automated collection until its access method, location coverage, and request rate are recorded and a maintainer approves it.
 
 | Candidate | Why it may fit | Observed information | Proposed next check | Current disposition |
 | --- | --- | --- | --- | --- |
+| [Giardini Luzzati / Spazio Comune](https://www.spazio-comune.org/) | Direct organizer for cultural events and community activity at the Giardini. | The official site exposes event/product listings. An official indexed event page shows “Nessuno ci insegna a cadere,” Tuesday 6 October 2026 at 18:00, at Giardini Luzzati - Spazio Comune; direct URL: https://www.spazio-comune.org/prodotto/nessuno-ci-insegna-a-cadere/. This was found through public search indexing, not fetched by the project collector. | First pilot: check the exact page path against the site's crawler rules, then make one bounded request only if allowed. Record title/date/time/location, publisher, and direct event link; do not retain the page description or image. | Owner-selected first-source candidate; live collector test pending #59/#49 and crawler-path check |
 | [Visitgenoa — Eventi](https://www.visitgenoa.it/it/eventi) | City tourism listings cover cultural events, exhibitions, family activities, tours, and longer-running programs. | The public index shows event links, date ranges, and labels including culture, exhibitions, family, tours, and top events. | Identify the organizer's original event page where available. For a limited pilot, use only the minimum factual fields, write a fresh short summary from those facts, and link to the source. Check the relevant terms and technical access before automating. | Pending source review |
 | [Mentelocale — Genova events](https://www.mentelocale.it/genova/eventi/) | Local editorial agenda with music, art, sport, markets, tours, talks, and other activities; a strong candidate for varied discovery beyond institutional feeds. | The index shows dated event links and topic labels. It also includes some events outside the Comune di Genova, so location filtering is essential. | A small facts-only pilot can test whether it adds useful events: retain title/date/time/venue/admission facts, write a concise summary in new wording, credit Mentelocale, and link directly to the event page. Do not copy its description or image. Check terms, technical access, and request rate before automating. | Pending source review |
 | [Palazzo Ducale — event calendar](https://palazzoducale.genova.it/calendario-eventi/) | Direct source for exhibitions, talks, workshops, and public cultural programs at Palazzo Ducale and Wolfsoniana. | Listing cards expose titles, venue, date ranges, times, admission notes, and ticket links. Multi-day exhibitions appear in the date-based calendar, so they must normalize to one event rather than one copy per day. | Test a small facts-only sample and distinguish separate timed events from exhibition opening periods. Prefer the organizer's ticket/event page as the outbound link. Check terms and technical access before automating. | Pending source review |
@@ -25,21 +26,35 @@ This is a small research snapshot for the maintainer, not the operational source
 
 ## Practical pilot rules
 
-Italian law distinguishes creative expression from ordinary event information. The current text of [Article 1 of Law 633/1941](https://www.wipo.int/wipolex/en/legislation/details/21564) protects works with creative character. [Article 101](https://www.wipo.int/wipolex/en/legislation/details/21564) says reproduction of information and news is lawful when the source is given and journalistic fair practice is respected; it separately addresses systematic reproduction with gainful intent by newspapers, periodicals, or broadcasters. Whether a particular event-calendar collector fits these provisions is fact-specific. [Article 70](https://www.wipo.int/wipolex/en/legislation/details/21564) is a narrower exception for criticism/discussion and teaching/research; this project should not treat it as a blanket event-calendar permission.
+This calendar is a facts-and-links index. Store the event title, date/time and
+location when listed, publisher name, and direct event URL. Do not copy
+descriptions, photographs, or promotional text. The event page remains the
+source for full details, access requirements, and changes.
 
-The EU [Database Directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:01996L0009-20190606) separately restricts taking a substantial part of a protected database and repeated, systematic use of small parts where it conflicts with normal exploitation or unreasonably harms the maker. This is why the pilot should stay small and the daily collector needs a source-by-source review. These provisions do not establish that every isolated event fact requires prior permission.
+The owner's whitelist controls which publishers are considered for collection.
+For each active source, configure only the public event index needed for the
+calendar. Check the exact path against the site's crawler instructions before
+a run; skip a disallowed path, do not evade the rule through another route, and
+continue the other sources. Treat an HTTP 404 for robots.txt as no published crawler rules and continue under the low request limit. If the robots request returns 401/403/429/5xx or a network error, skip that source for the run. A clear site-level no-automation rule
+pauses that source. This practical policy is not a claim that robots.txt is
+legal authorization or a blanket assessment of every possible database right.
 
-A useful early pilot does not need to reproduce publishers' articles. For each selected event, keep only what people need to decide whether to go: event title, date/time, venue, price or booking link, category, a short original fact-based summary, source name, and direct link. Base the summary on the event facts rather than rewriting the publisher's promotional paragraph sentence by sentence. Attribution and a source link help readers and publishers, but do not grant rights to copy protected prose or images.
+Keep requests bounded: one initial listing page per source, sequentially; at
+most one refresh per source per day; cache responses and use conditional
+requests when supported; honor a published crawl delay; back off on rate limits
+and server errors. Do not fetch every event detail page when the listing page
+contains the facts needed to place an event in the calendar.
 
-A public cover image is a separate asset with its own rights. Display one when the organizer/publisher provides a reuse license, explicit permission, or an official embed/share mechanism whose terms allow this use. Store the image credit and source URL. If there is no clear reuse basis, show the event without an image; linking to the original page still gives users access to its cover image.
+EU database rights can apply to substantial or repeated systematic extraction
+in some circumstances. This is a reason to keep the collection proportionate
+and to stop if a source objects, not a reason to require a bespoke legal memo
+for every event title. For significant scaling or a clear dispute, get
+appropriate legal advice.
 
-For the first technical test, use a small number of events and a low request rate, avoid login/paywall/CAPTCHA barriers and any explicit no-automation rule, keep the source URL on every event, and pause a source if the owner objects. Before scaling into a daily collector, check source terms, `robots.txt`, any rate limits, feed/API availability, and whether repeated collection could take a substantial part of a protected database. The project's small initial audience is a good reason to keep the pilot small; it does not itself create a copyright exception.
-
-## Suggested order for maintainer review
-
-Start by sampling direct organizer pages at Palazzo Ducale and Teatro Nazionale for authoritative dates, venues, and ticket links. Mentelocale may add the variety the calendar needs; its event pages are suitable for a small facts-only usefulness test, while copied descriptions/images remain out of scope. Visitgenoa may add broader coverage but needs overlap and image-rights checks. Musei di Genova should be kept only if it contributes distinct events or a more direct link.
-
-This is a candidate-prioritization recommendation only. Every item remains pending until its access method, collection rate, and geographic scope are recorded and a maintainer explicitly approves it in the admin source directory. This is an operational gate for the collector, not a claim that every fact needs individual permission.
+`robots.txt` is a crawler protocol, not a form of access authorization (RFC
+9309, https://www.rfc-editor.org/rfc/rfc9309.html). Respecting it is the
+project's operational courtesy rule. Do not confuse that courtesy with a
+permission grant.
 
 ## Deliberately not shortlisted
 

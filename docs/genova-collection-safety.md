@@ -26,9 +26,22 @@ city fails closed. A future manual GitHub dry run requires the reviewed
 repository variable `ENABLED_CITIES` to equal `genova` exactly.
 
 There is no recurring collection cost or recovery procedure to operate yet.
-Before enabling discovery or collection, the maintainer must approve a
-specific public Genova source and method, finish the Issue #5 admin setup,
-review access, cost, quotas, and recovery, and complete the fixture-only dry
-run. Any future collector may read only sources marked both approved and
-active; it must never use inherited city data or upstream keys. No recurring
-schedule or paid provider is enabled by the fixture workflow.
+The owner has selected Giardini Luzzati / Spazio Comune as the first small
+external-source test. The source whitelist is owner-selected; the collector
+must check robots.txt for the exact public listing path, skip any disallowed
+path, and continue with other selected sources. The pilot stores event title,
+date/time and location when listed, publisher name, and original event URL;
+it copies no descriptions or images. A 404 for robots.txt means no published crawler rules; continue under the low request limit. If the robots request returns 401/403/429/5xx or a network error, or the site explicitly blocks automated collection, skip that source for the run without blocking the calendar. Complete the Issue #59 hosted security gate
+and Issue #49 fixture run before connecting real collection to Supabase. Keep
+the first source run manual and small; recurring daily refresh follows only
+after basic reliability and recovery are proven. No paid provider is enabled.
+
+
+## Isolated public-page probe
+
+PR #65 adds a manual one-event check for the owner-selected Giardini Luzzati
+source. It checks robots.txt and, only if permitted, requests the fixed event
+URL once. It uses no credentials, writes no database or calendar rows, stores
+no HTML, and emits no description or image. It is separate from Issue #5's
+fictional fixture flow and from production collection. A later production
+collector still needs the hosted security and fixture gates.
