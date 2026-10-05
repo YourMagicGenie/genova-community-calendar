@@ -42,16 +42,18 @@ Neither the public page nor the GitHub runner receives a Supabase secret key.
 
 ## Owner setup needed before the first remote test
 
-The repository contains the code, but the hosted project still needs its
-application schema, Edge Functions, and owner-managed credentials. The
-dashboard-created automatic-RLS helper is already applied; the application
-migrations are not. The public key in `xmlui/config.json` is publishable and is
-not an admin credential.
+The application schema is installed in the owner-controlled project and all
+application tables have RLS enabled. Before adding an Auth user or running the
+fixture, finish Issue #59: close the remaining public data/API paths, merge its
+tests and migration, apply it through the guarded workflow, and verify hosted
+grants plus the Security Advisor. Do not use this guide to reapply the schema.
+The public key in `xmlui/config.json` is publishable and is not an admin
+credential.
 
-1. Apply the repository's database migrations to the owner-controlled Genova
-   project and deploy `genova-agent-run` and `genova-agent-callback`. Check
-   migration history before applying the pending schema; do not copy secrets
-   into the repository or this document.
+1. After Issue #59 is verified, confirm the hosted migration list matches
+   `main` and deploy `genova-agent-run` and `genova-agent-callback` with the
+   authentication settings documented in `supabase/config.toml`. Keep
+   credentials out of the repository and this document.
 2. In Supabase Dashboard → Authentication → Users, create the owner's sign-in
    account using the owner's email and a new password. Copy that user's UUID.
 3. In the Supabase SQL Editor, register only that UUID as admin:
