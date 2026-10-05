@@ -2,6 +2,9 @@ name: Giardini Luzzati one-event probe
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - probe/giardini-luzzati-once-20261006
 
 permissions:
   contents: read
