@@ -1,6 +1,6 @@
 # Genova fork readiness audit
 
-**Reviewed:** 2026-09-30; Supabase connection and fixture-run status updated 2026-10-02
+**Reviewed:** 2026-10-05; Supabase schema applied, security review in progress
 **Repository:** [YourMagicGenie/genova-community-calendar](https://github.com/YourMagicGenie/genova-community-calendar)  
 **Project tracker:** [Issue #1](https://github.com/YourMagicGenie/genova-community-calendar/issues/1)
 
