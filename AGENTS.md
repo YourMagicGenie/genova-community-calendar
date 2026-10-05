@@ -35,12 +35,14 @@ Do not mark release criteria complete because a sample page looks finished.
 - The ordinary `xmlui/` app, `cities/`, `scrapers/`, `scripts/`, and
   `supabase/` contain inherited multi-city code. They are useful starting
   points, but they do not establish a working Genova collection pipeline,
-  Genova database, admin panel, or calendar subscription.
+  admin panel, or calendar subscription.
 - `xmlui/config.json` contains the owner-controlled Genova Supabase URL and
   publishable key. The root and Genova public preview remain isolated from
-  Supabase and display fictional fixtures only. The hosted project currently
-  has the RLS helper but not the application's tables, admin account, sources,
-  or event data. Do not treat the connection as a live collector.
+  Supabase and display fictional fixtures only. The hosted project has the
+  application tables with RLS enabled, but no Auth user, approved sources, or
+  events. Complete Issue #59's security review before creating the admin
+  identity or running the fixture workflow; the database connection alone is
+  not a live collector.
 - `.github/workflows/generate-calendar.yml` is the old manual, read-only
   Genova scope check. It has no schedule, source scan, or writer, and remains
   disabled in Actions. The separate Issue #5 workflow currently validates
