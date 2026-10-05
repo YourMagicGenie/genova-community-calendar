@@ -30,6 +30,19 @@ class SingleMigrationTests(unittest.TestCase):
             "auth_user_count": 1,
         }]}))
 
+    def test_parse_snapshot_accepts_direct_postgres_json_object(self):
+        payload = {
+            "migration_versions": VERSIONS,
+            "public_relations": CORE,
+            "public_tables": CORE,
+            "public_rls_tables": CORE,
+            "auth_user_count": 0,
+        }
+        snapshot = parse_snapshot(json.dumps(payload))
+        self.assertEqual(snapshot["migration_versions"], VERSIONS)
+        self.assertEqual(snapshot["public_rls_tables"], CORE)
+        self.assertEqual(snapshot["auth_user_count"], 0)
+
     def test_preflight_accepts_only_the_newest_pending_migration(self):
         self.assertEqual(
             verify_single_migration(self.snapshot(versions=VERSIONS[:-1]), "preflight", self.migrations),

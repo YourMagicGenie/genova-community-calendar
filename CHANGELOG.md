@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-05 — Fixed migration-workflow preflight and postflight snapshots to use read-only SQL over the IPv4 pooler instead of the Management API query endpoint, which requires `database_write` for this CLI operation (issue #59).
+
 - 2026-10-04 — Added a guarded manual preview/apply path for one later Genova database migration, with remote history and RLS checks (issue #59).
 
 - 2026-10-04 — Restricted inherited privileged refresh and trigger functions from direct public execution and pinned their search paths after the hosted schema bootstrap exposed Security Advisor warnings (issue #59).
