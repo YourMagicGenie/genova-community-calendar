@@ -1,6 +1,6 @@
 -- Genova API access must not expose the inherited all-events or curator views.
 BEGIN;
-SELECT plan(17);
+SELECT plan(18);
 
 SELECT ok(
   NOT has_table_privilege('anon', 'public.deduplicated_events', 'SELECT')
@@ -82,7 +82,7 @@ SELECT ok(
 );
 
 SELECT ok(
-  (SELECT count(*) = 0 FROM pg_cron.job),
+  (SELECT count(*) = 0 FROM cron.job),
   'no inherited scheduled collection jobs are active'
 );
 
