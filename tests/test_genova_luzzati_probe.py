@@ -35,6 +35,11 @@ def test_robots_disallow_skips_event_without_fetching_page():
         probe_event(get=get, sleeper=lambda _: None)
     except ProbeSkipped as error:
         assert "disallows" in str(error)
+        assert error.report["robots_http_status"] == 200
+        assert error.report["robots_decision"] == "disallowed"
+        assert error.report["robots_path_allowed"] is False
+        assert error.report["event_http_status"] is None
+        assert error.report["request_count"] == 1
     else:
         raise AssertionError("disallowed path must be skipped")
 
@@ -63,6 +68,14 @@ def test_robots_404_allows_one_page_and_returns_only_calendar_facts():
         "start_at": "2026-10-06T18:00:00+02:00",
         "venue": "Giardini Luzzati - Spazio Comune",
         "url": EVENT_URL,
+        "access": {
+            "robots_http_status": 404,
+            "robots_decision": "missing_no_rules",
+            "robots_path_allowed": True,
+            "event_http_status": 200,
+            "request_count": 2,
+            "crawl_delay_seconds": 0,
+        },
     }
     assert "description" not in result
     assert "image" not in result
@@ -88,3 +101,44 @@ def test_robots_network_error_stops_before_event_request():
 
 def test_source_probe_uses_identifying_user_agent():
     assert "GenovaCommunityCalendarProbe" in USER_AGENT
+
+
+
+def test_allowed_robots_response_and_event_status_are_reported():
+    calls = []
+
+    def get(url):
+        calls.append(url)
+        if url.endswith("/robots.txt"):
+            return FakeResponse(200, url, b"User-agent: *\nAllow: /prodotto/\n")
+        return FakeResponse(200, url, PAGE.encode("utf-8"))
+
+    result = probe_event(get=get, sleeper=lambda _: None)
+
+    assert result["access"] == {
+        "robots_http_status": 200,
+        "robots_decision": "allowed",
+        "robots_path_allowed": True,
+        "event_http_status": 200,
+        "request_count": 2,
+        "crawl_delay_seconds": 0,
+    }
+    assert len(calls) == 2
+
+
+def test_event_http_error_is_reported_after_allowed_robots_check():
+    def get(url):
+        if url.endswith("/robots.txt"):
+            return FakeResponse(200, url, b"User-agent: *\nAllow: /prodotto/\n")
+        return FakeResponse(503, url)
+
+    try:
+        probe_event(get=get, sleeper=lambda _: None)
+    except ProbeSkipped as error:
+        assert "event page returned HTTP 503" in str(error)
+        assert error.report["robots_http_status"] == 200
+        assert error.report["robots_decision"] == "allowed"
+        assert error.report["event_http_status"] == 503
+        assert error.report["request_count"] == 2
+    else:
+        raise AssertionError("event server failure must be reported as skipped")
