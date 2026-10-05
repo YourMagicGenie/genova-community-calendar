@@ -48,11 +48,16 @@ def parse_snapshot(raw: str) -> dict[str, Any]:
     except json.JSONDecodeError as error:
         raise BootstrapStateError("The database snapshot is not valid JSON.") from error
 
-    rows = payload.get("rows") if isinstance(payload, dict) else None
-    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+    if isinstance(payload, dict) and "rows" in payload:
+        rows = payload["rows"]
+        if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+            raise BootstrapStateError("The database snapshot format is not recognized.")
+        row = rows[0]
+    elif isinstance(payload, dict):
+        # Direct PostgreSQL snapshots are emitted as a single JSON object by psql.
+        row = payload
+    else:
         raise BootstrapStateError("The database snapshot format is not recognized.")
-
-    row = rows[0]
     versions = _string_list(row.get("migration_versions"), "migration history")
     relations = _string_list(row.get("public_relations"), "public relation")
     tables = _string_list(row.get("public_tables"), "public table")

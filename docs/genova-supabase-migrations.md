@@ -30,6 +30,8 @@ project `eginljyhnnczeeqxwfia`.
 The workflow deliberately stops if remote history differs, multiple migrations
 are pending, or core RLS is missing. Do not edit migration history or use
 `db reset --linked` to work around a stop; inspect the hosted state first.
-The selected GitHub token grants Read scopes to link and query; the database
-password authenticates `db push`. The public sample calendar remains fictional
-until the separate admin fixture and source-review work is complete.
+The Supabase access token uses read permissions for project linking, pooler
+configuration, and the Security Advisor API. State snapshots run as an explicit
+read-only SQL transaction over the IPv4 pooler using the database password;
+`db push` uses that password for the reviewed migration. The public sample calendar
+remains fictional until the separate admin fixture and source-review work is complete.
