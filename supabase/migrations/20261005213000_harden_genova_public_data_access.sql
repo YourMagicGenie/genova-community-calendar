@@ -10,6 +10,11 @@ GRANT SELECT ON TABLE public.deduplicated_events TO service_role;
 GRANT SELECT ON TABLE public.category_overrides_view TO service_role;
 GRANT SELECT ON TABLE public.distinct_cities TO service_role;
 
+-- Raw event records stay server-side; the future public route will expose only
+-- validated, field-limited published events.
+REVOKE SELECT ON TABLE public.events FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.events TO service_role;
+
 -- This helper exposes a supplied user's display name through auth.users. It is
 -- used only by category_overrides_view, which is now service-only. Do not leave
 -- arbitrary user lookup available to browser roles.
