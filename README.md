@@ -9,12 +9,12 @@ useful event listings from local publishers, venues, and organizations.
 [Open the Genova calendar preview](https://yourmagicgenie.github.io/genova-community-calendar/).
 
 The page currently shows **fictional sample events only**. The owner-controlled
-Supabase project is connected in the inherited app configuration, but it has
-not yet received the application's tables or admin account. There is no
-approved publisher list, real event feed, or source collector. Issue #5 adds a
-fixture-only admin test path that still needs database migrations and private
-credentials before it can be used. The preview does not yet show what is
-happening in Genova.
+Supabase project now has the application's database tables with Row Level
+Security enabled, but it has no Auth user, approved publisher, or event data.
+Security review in [Issue #59](https://github.com/YourMagicGenie/genova-community-calendar/issues/59)
+must be cleared before setting up the admin identity or running the fixture
+workflow. There is no real event feed or source collector. The preview does
+not yet show what is happening in Genova.
 
 ## Project scope and source approval
 

@@ -10,6 +10,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 - 2026-10-05 — Reframed source collection as an owner-selected whitelist with path-level crawler compliance and facts-and-links records; selected Giardini Luzzati / Spazio Comune and added a manual robots-aware one-event probe that writes no calendar or database data (issue #50).
 
+- 2026-10-05 — Closed anonymous access to inherited event/curator views and the curator-name lookup; preserved signed-in self-identity checks and guarded admin removal, with pgTAP coverage and a guarded `pg_net` schema move (issue #59).
+
 - 2026-10-05 — Fixed migration-workflow preflight and postflight snapshots to use read-only SQL over the IPv4 pooler instead of the Management API query endpoint, which requires `database_write` for this CLI operation (issue #59).
 
 - 2026-10-04 — Added a guarded manual preview/apply path for one later Genova database migration, with remote history and RLS checks (issue #59).
