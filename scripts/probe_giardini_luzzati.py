@@ -15,7 +15,7 @@ from html.parser import HTMLParser
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.robotparser import RobotFileParser
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 from zoneinfo import ZoneInfo
 
 SOURCE_NAME = "Giardini Luzzati / Spazio Comune"
@@ -45,13 +45,18 @@ class _Response:
         return self._body[:limit]
 
 
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+
 def _http_get(url: str) -> _Response:
     request = Request(url, headers={
         "User-Agent": USER_AGENT,
         "Accept": "text/html,text/plain;q=0.9,*/*;q=0.1",
     })
     try:
-        with urlopen(request, timeout=15) as response:
+        with build_opener(_NoRedirect()).open(request, timeout=15) as response:
             body = response.read(MAX_RESPONSE_BYTES + 1)
             return _Response(response.status, response.geturl(), body)
     except HTTPError as error:
@@ -85,7 +90,8 @@ def _robots_rules(url: str, get=_http_get) -> tuple[RobotFileParser | None, int]
 class _FactsParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.headings: list[str] = []
+        self.h1_titles: list[str] = []
+        self.page_titles: list[str] = []
         self.text: list[str] = []
         self._capture: str | None = None
         self._buffer: list[str] = []
@@ -108,8 +114,10 @@ class _FactsParser(HTMLParser):
             return
         if self._capture == tag:
             value = " ".join(" ".join(self._buffer).split())
-            if value:
-                self.headings.append(value)
+            if value and tag == "h1":
+                self.h1_titles.append(value)
+            elif value and tag == "title":
+                self.page_titles.append(value)
             self._capture = None
             self._buffer = []
 
@@ -144,7 +152,7 @@ def _parse_italian_start(text: str) -> str | None:
 def _event_fields(html: str) -> dict:
     parser = _FactsParser()
     parser.feed(html)
-    title = next((heading for heading in parser.headings if heading), None)
+    title = next(iter(parser.h1_titles), None) or next(iter(parser.page_titles), None)
     body_text = " ".join(parser.text)
     start_at = _parse_italian_start(body_text)
     venue_match = re.search(
