@@ -35,3 +35,13 @@ it copies no descriptions or images. A 404 for robots.txt means no published cra
 and Issue #49 fixture run before connecting real collection to Supabase. Keep
 the first source run manual and small; recurring daily refresh follows only
 after basic reliability and recovery are proven. No paid provider is enabled.
+
+
+## Isolated public-page probe
+
+PR #65 adds a manual one-event check for the owner-selected Giardini Luzzati
+source. It checks robots.txt and, only if permitted, requests the fixed event
+URL once. It uses no credentials, writes no database or calendar rows, stores
+no HTML, and emits no description or image. It is separate from Issue #5's
+fictional fixture flow and from production collection. A later production
+collector still needs the hosted security and fixture gates.
