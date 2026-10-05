@@ -31,9 +31,7 @@ external-source test. The source whitelist is owner-selected; the collector
 must check robots.txt for the exact public listing path, skip any disallowed
 path, and continue with other selected sources. The pilot stores event title,
 date/time and location when listed, publisher name, and original event URL;
-it copies no descriptions or images. If crawler instructions are unavailable
-or the site explicitly blocks automated collection, skip that source for the
-run without blocking the calendar. Complete the Issue #59 hosted security gate
+it copies no descriptions or images. A 404 for robots.txt means no published crawler rules; continue under the low request limit. If the robots request returns 401/403/429/5xx or a network error, or the site explicitly blocks automated collection, skip that source for the run without blocking the calendar. Complete the Issue #59 hosted security gate
 and Issue #49 fixture run before connecting real collection to Supabase. Keep
 the first source run manual and small; recurring daily refresh follows only
 after basic reliability and recovery are proven. No paid provider is enabled.
