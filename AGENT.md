@@ -1,6 +1,6 @@
 # Genova event agent operating contract
 
-This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission to scan websites. Until the admin-only controls and approved-source workflow in Issue #5 are implemented, do not run collection or connect credentials.
+This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission for recurring collection. Do not connect credentials or run production collection until the admin-only controls and approved-source workflow in Issue #5 are implemented. A separate manual one-event probe may make one public page request only after checking that exact path in robots.txt; it has no credentials, database connection, or write path.
 
 ## Pilot boundary and purpose
 
@@ -70,8 +70,11 @@ Multiple categories may apply. `date-night` is an optional extra tag, never a re
 
 When the approved admin workflow exists, each run should report its trigger and time, this instruction file's version/commit, candidates discovered, approved active sources scanned, events added/updated/cancelled, items needing review, and source-level failures. Do not expose private review notes or admin run history on the public calendar.
 
-The Issue #5 fixture workflow is the only current run path: it validates
-fictional fixtures, scans no websites, and writes no events. It does not yet
-implement source discovery, a review queue, collection, or calendar publishing.
-Use this file as the agent's reviewed operating contract; do not treat the
-fixture workflow as permission to collect from any source.
+The Issue #5 fixture workflow remains the admin-agent test path: it validates
+fictional fixtures, scans no websites, and writes no events. The separate
+Giardini Luzzati probe is a manual, one-event, read-only check. It first checks
+robots.txt for the exact fixed event URL, prints only the calendar facts, and
+never writes to Supabase or the public calendar. Neither workflow implements
+regular source discovery or production collection. Use this file as the
+agent's reviewed operating contract; do not treat either workflow as approval
+for recurring collection.
