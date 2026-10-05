@@ -34,6 +34,10 @@ MONTHS = {
 class ProbeSkipped(Exception):
     """The requested page should not be fetched in this run."""
 
+    def __init__(self, message: str, *, report: dict | None = None):
+        super().__init__(message)
+        self.report = report or {}
+
 
 class _Response:
     def __init__(self, status: int, url: str, body: bytes):
@@ -65,26 +69,55 @@ def _http_get(url: str) -> _Response:
         raise ProbeSkipped("network error while checking source") from error
 
 
-def _robots_rules(url: str, get=_http_get) -> tuple[RobotFileParser | None, int]:
+def _robots_rules(url: str, get=_http_get) -> tuple[RobotFileParser | None, int, int]:
     parts = urlsplit(url)
     robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
-    response = get(robots_url)
+    try:
+        response = get(robots_url)
+    except ProbeSkipped as error:
+        error.report.update({
+            "robots_http_status": None,
+            "robots_decision": "unavailable",
+            "robots_path_allowed": None,
+        })
+        raise
     if response.status == 404:
         # A missing robots file publishes no path restrictions.
-        return None, 0
+        return None, 0, response.status
     if response.status != 200:
-        raise ProbeSkipped(f"robots.txt returned HTTP {response.status}")
+        raise ProbeSkipped(
+            f"robots.txt returned HTTP {response.status}",
+            report={
+                "robots_http_status": response.status,
+                "robots_decision": "unavailable",
+                "robots_path_allowed": None,
+            },
+        )
     if urlsplit(response.url).hostname != parts.hostname:
-        raise ProbeSkipped("robots.txt redirected to another host")
+        raise ProbeSkipped(
+            "robots.txt redirected to another host",
+            report={
+                "robots_http_status": response.status,
+                "robots_decision": "unavailable",
+                "robots_path_allowed": None,
+            },
+        )
     if len(response.read()) > MAX_RESPONSE_BYTES:
-        raise ProbeSkipped("robots.txt exceeded the response-size limit")
+        raise ProbeSkipped(
+            "robots.txt exceeded the response-size limit",
+            report={
+                "robots_http_status": response.status,
+                "robots_decision": "unavailable",
+                "robots_path_allowed": None,
+            },
+        )
 
     parser = RobotFileParser(robots_url)
     parser.parse(response.read().decode("utf-8", errors="replace").splitlines())
     delay = parser.crawl_delay(USER_AGENT)
     if delay is None:
         delay = parser.crawl_delay("*")
-    return parser, int(delay or 0)
+    return parser, int(delay or 0), response.status
 
 
 class _FactsParser(HTMLParser):
@@ -176,40 +209,86 @@ def probe_event(url: str = EVENT_URL, get=_http_get, sleeper=time.sleep) -> dict
     ):
         raise ProbeSkipped("URL is outside the fixed one-event probe")
 
-    robots, crawl_delay = _robots_rules(url, get=get)
-    if robots is not None and not robots.can_fetch(USER_AGENT, url):
-        raise ProbeSkipped("robots.txt disallows this event path")
-    if crawl_delay > MAX_CRAWL_DELAY_SECONDS:
-        raise ProbeSkipped("published crawl delay exceeds the probe's wait limit")
-    if crawl_delay:
-        sleeper(crawl_delay)
+    request_count = 0
+    robots_http_status = None
+    robots_decision = "not_checked"
+    robots_path_allowed = None
+    crawl_delay = 0
+    event_http_status = None
 
-    response = get(url)
-    if response.status != 200:
-        raise ProbeSkipped(f"event page returned HTTP {response.status}")
-    if urlsplit(response.url).hostname != fixed_url.hostname:
-        raise ProbeSkipped("event page redirected to another host")
-    html_bytes = response.read()
-    if len(html_bytes) > MAX_RESPONSE_BYTES:
-        raise ProbeSkipped("event page exceeded the response-size limit")
-    facts = _event_fields(html_bytes.decode("utf-8", errors="replace"))
-    if not facts["title"]:
-        raise ProbeSkipped("could not identify an event title")
-    return {
-        "status": "ok",
-        "source": SOURCE_NAME,
-        "title": facts["title"],
-        "start_at": facts["start_at"],
-        "venue": facts["venue"],
-        "url": url,
-    }
+    def tracked_get(target: str) -> _Response:
+        nonlocal request_count
+        request_count += 1
+        return get(target)
+
+    try:
+        robots, crawl_delay, robots_http_status = _robots_rules(url, get=tracked_get)
+        if robots is None:
+            robots_decision = "missing_no_rules"
+            robots_path_allowed = True
+        else:
+            robots_path_allowed = robots.can_fetch(USER_AGENT, url)
+            robots_decision = "allowed" if robots_path_allowed else "disallowed"
+            if not robots_path_allowed:
+                raise ProbeSkipped("robots.txt disallows this event path")
+        if crawl_delay > MAX_CRAWL_DELAY_SECONDS:
+            raise ProbeSkipped("published crawl delay exceeds the probe's wait limit")
+        if crawl_delay:
+            sleeper(crawl_delay)
+
+        response = tracked_get(url)
+        event_http_status = response.status
+        if response.status != 200:
+            raise ProbeSkipped(f"event page returned HTTP {response.status}")
+        if urlsplit(response.url).hostname != fixed_url.hostname:
+            raise ProbeSkipped("event page redirected to another host")
+        html_bytes = response.read()
+        if len(html_bytes) > MAX_RESPONSE_BYTES:
+            raise ProbeSkipped("event page exceeded the response-size limit")
+        facts = _event_fields(html_bytes.decode("utf-8", errors="replace"))
+        if not facts["title"]:
+            raise ProbeSkipped("could not identify an event title")
+        return {
+            "status": "ok",
+            "source": SOURCE_NAME,
+            "title": facts["title"],
+            "start_at": facts["start_at"],
+            "venue": facts["venue"],
+            "url": url,
+            "access": {
+                "robots_http_status": robots_http_status,
+                "robots_decision": robots_decision,
+                "robots_path_allowed": robots_path_allowed,
+                "event_http_status": response.status,
+                "request_count": request_count,
+                "crawl_delay_seconds": crawl_delay,
+            },
+        }
+    except ProbeSkipped as error:
+        report = {
+            "robots_http_status": robots_http_status,
+            "robots_decision": robots_decision,
+            "robots_path_allowed": robots_path_allowed,
+            "event_http_status": event_http_status,
+            "request_count": request_count,
+            "crawl_delay_seconds": crawl_delay,
+        }
+        report.update(error.report)
+        error.report = report
+        raise
 
 
 def main() -> int:
     try:
         result = probe_event()
     except ProbeSkipped as error:
-        result = {"status": "skipped", "source": SOURCE_NAME, "reason": str(error), "url": EVENT_URL}
+        result = {
+            "status": "skipped",
+            "source": SOURCE_NAME,
+            "reason": str(error),
+            "url": EVENT_URL,
+            **error.report,
+        }
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 
