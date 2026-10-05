@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-05 — Reframed source collection as an owner-selected whitelist with path-level crawler compliance, bounded daily index requests, and a facts-and-links record; selected Giardini Luzzati / Spazio Comune for the first real-source pilot (issue #50).
+
 - 2026-10-05 — Fixed migration-workflow preflight and postflight snapshots to use read-only SQL over the IPv4 pooler instead of the Management API query endpoint, which requires `database_write` for this CLI operation (issue #59).
 
 - 2026-10-04 — Added a guarded manual preview/apply path for one later Genova database migration, with remote history and RLS checks (issue #59).
