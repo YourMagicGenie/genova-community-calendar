@@ -43,9 +43,7 @@ migrations are exercised only by disposable local Supabase in GitHub Actions.
 `active` means the maintainer selected the publisher for the calendar. It does
 not authorize every page on the publisher's host. Configure a small set of
 public event index URLs for each source, check `robots.txt` for each requested
-path, skip disallowed paths, and continue other allowed sources. If the robots
-file cannot be fetched reliably, skip only that source for the current run and
-report the reason. A clearly published no-automation rule pauses that source.
+path, skip disallowed paths, and continue other allowed sources. Treat an HTTP 404 for robots.txt as no published crawler rules and continue under the project's low request limits. If the robots request returns 401/403/429/5xx or a network error, skip only that source for the current run and report why. A clearly published no-automation rule pauses that source.
 Do not change hosts or paths to evade a restriction.
 
 For the first pilot, request one listing page, store event title/date/time,
