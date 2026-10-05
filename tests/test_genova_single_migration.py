@@ -40,7 +40,9 @@ class SingleMigrationTests(unittest.TestCase):
         }
         snapshot = parse_snapshot(json.dumps(payload))
         self.assertEqual(snapshot["migration_versions"], VERSIONS)
-        self.assertEqual(snapshot["public_rls_tables"], CORE)
+        self.assertEqual(snapshot["public_relations"], sorted(CORE))
+        self.assertEqual(snapshot["public_tables"], sorted(CORE))
+        self.assertEqual(snapshot["public_rls_tables"], sorted(CORE))
         self.assertEqual(snapshot["auth_user_count"], 0)
 
     def test_preflight_accepts_only_the_newest_pending_migration(self):
