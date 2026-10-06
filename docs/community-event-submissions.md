@@ -1,6 +1,6 @@
 # Community event submissions — rollout
 
-Issue #68 adds an optional public event-suggestion path. The code is merged in stages while the main calendar still shows fictional fixtures. The form remains disabled by `xmlui/config.json` until the steps below are complete.
+Issue #68 adds an optional public event-suggestion path. The code is merged in stages while the main calendar still shows fictional fixtures. Both `xmlui/config.json` and the server-owned `community_submission_settings.accepting` switch start disabled. Applying the schema alone cannot accept public proposals.
 
 ## Data flow
 
@@ -16,6 +16,6 @@ The table limits intake to 50 proposals per rolling day and rejects exact title/
 - Review and apply migration `20261006130000_community_event_submissions.sql` through the guarded Supabase preview/apply workflow. Verify hosted RLS, column grants, admin authorization, and an anonymous proposal in a controlled test. Do not run a production migration from a PR preview.
 - Publish a specific submission privacy notice with the operator's contact, purpose, retention and deletion process for pending/rejected proposals and optional contact email. Set an operational queue-cleanup practice. The placeholder text on the draft form is not a complete notice.
 - Review form and admin queue on a phone and laptop. Submit a fictional proposal, check that it is private, approve it, verify the published card and feed, edit it, withdraw it, and verify disappearance. Remove the fictional record afterward.
-- In a later activation PR, set `communitySubmissionsEnabled` to `true` in `xmlui/config.json` and add the `submit-event.html` link to the public calendar. The admin review section will appear at the same time. Do not enable the flag before all earlier checks pass.
+- In a later activation PR, set `communitySubmissionsEnabled` to `true` in `xmlui/config.json` and add the `submit-event.html` link to the public calendar. After hosted checks and the privacy notice, explicitly set the server-owned `community_submission_settings.accepting` switch to true through a reviewed database change. Verify anonymous submission only then. Do not enable either switch before all earlier checks pass.
 
 Image upload is not in this stage. It needs private storage, limits, image rights confirmation, admin review, an explicit public copy decision, and cleanup of abandoned uploads.
