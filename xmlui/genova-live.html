@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123b3e">
+  <title>Porto Aperto | Live Genova events</title>
+  <link rel="stylesheet" href="genova-live.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="genova-live.html" aria-label="Porto Aperto Genova live calendar home">
+      <span class="brand-mark" aria-hidden="true">PA</span>
+      <span>Porto Aperto <span class="brand-divider">|</span> Genova</span>
+    </a>
+    <span class="timezone">Europe/Rome</span>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Validated local listings</p>
+      <h1 id="page-title">Live Genova events</h1>
+      <p>Only admin-reviewed events from active approved sources appear here. Event details link back to the original publisher.</p>
+      <p class="preview-note"><strong>Pilot page:</strong> this stays separate from the fictional sample until the first real-source run and responsive review are complete.</p>
+    </section>
+    <section aria-labelledby="events-heading">
+      <div class="section-heading">
+        <h2 id="events-heading">Upcoming events</h2>
+        <a href="genova-sample-preview.html?city=genova&amp;preview=sample">Open fictional sample preview</a>
+      </div>
+      <p id="live-status" class="status" role="status" aria-live="polite">Loading validated events…</p>
+      <div id="live-events" class="event-list"></div>
+    </section>
+  </main>
+  <footer>Porto Aperto | Genova · Public calendar · No account required</footer>
+  <script src="genova-live.js"></script>
+  <script>window.GenovaLive.start(document);</script>
+</body>
+</html>
