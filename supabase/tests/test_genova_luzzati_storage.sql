@@ -1,11 +1,11 @@
 BEGIN;
 SELECT plan(31);
 
-SELECT has_column('public', 'feeds', 'request_cadence_minutes');
-SELECT has_column('public', 'feeds', 'daily_request_cap');
-SELECT has_column('public', 'feeds', 'last_attempt_at');
-SELECT has_column('public', 'feeds', 'last_success_at');
-SELECT has_column('public', 'feeds', 'last_result');
+SELECT has_column('public', 'feeds', 'request_cadence_minutes', 'source request cadence is recorded');
+SELECT has_column('public', 'feeds', 'daily_request_cap', 'source daily request cap is recorded');
+SELECT has_column('public', 'feeds', 'last_attempt_at', 'source last attempt is recorded');
+SELECT has_column('public', 'feeds', 'last_success_at', 'source last success is recorded');
+SELECT has_column('public', 'feeds', 'last_result', 'source last result is recorded');
 
 SELECT results_eq(
   $$ SELECT count(*)::bigint FROM public.feeds
@@ -29,29 +29,29 @@ SELECT results_eq(
   'Luzzati source review retains access provenance privately'
 );
 
-SELECT has_table('public', 'genova_event_candidates');
-SELECT has_column('public', 'genova_event_candidates', 'feed_id');
-SELECT has_column('public', 'genova_event_candidates', 'normalized_url');
-SELECT has_column('public', 'genova_event_candidates', 'category_confidence');
-SELECT has_column('public', 'genova_event_candidates', 'review_status');
-SELECT has_column('public', 'genova_event_candidates', 'first_seen');
-SELECT has_column('public', 'genova_event_candidates', 'last_seen');
+SELECT has_table('public', 'genova_event_candidates', 'private Genova event candidate table exists');
+SELECT has_column('public', 'genova_event_candidates', 'feed_id', 'candidate source ID is retained');
+SELECT has_column('public', 'genova_event_candidates', 'normalized_url', 'candidate normalized URL is retained');
+SELECT has_column('public', 'genova_event_candidates', 'category_confidence', 'candidate category confidence is reviewable');
+SELECT has_column('public', 'genova_event_candidates', 'review_status', 'candidate publication review state is separate');
+SELECT has_column('public', 'genova_event_candidates', 'first_seen', 'candidate first-seen time is retained');
+SELECT has_column('public', 'genova_event_candidates', 'last_seen', 'candidate last-seen time is retained');
 SELECT col_is_null('public', 'genova_event_candidates', 'start_time', 'unknown start times remain nullable');
 SELECT col_is_null('public', 'genova_event_candidates', 'location', 'unknown locations remain nullable');
 
-SELECT has_table('public', 'genova_source_scans');
-SELECT has_column('public', 'genova_source_scans', 'collector_revision');
-SELECT has_column('public', 'genova_source_scans', 'robots_decision');
-SELECT has_column('public', 'genova_source_scans', 'request_count');
-SELECT has_column('public', 'genova_source_scans', 'error_summary');
+SELECT has_table('public', 'genova_source_scans', 'private Genova source scan table exists');
+SELECT has_column('public', 'genova_source_scans', 'collector_revision', 'scan collector revision is retained');
+SELECT has_column('public', 'genova_source_scans', 'robots_decision', 'scan robots decision is retained');
+SELECT has_column('public', 'genova_source_scans', 'request_count', 'scan request count is retained');
+SELECT has_column('public', 'genova_source_scans', 'error_summary', 'scan safe error summary is retained');
 
-SELECT has_table('public', 'genova_public_events');
-SELECT has_column('public', 'genova_public_events', 'title');
-SELECT has_column('public', 'genova_public_events', 'start_time');
-SELECT has_column('public', 'genova_public_events', 'location');
-SELECT has_column('public', 'genova_public_events', 'publisher');
-SELECT has_column('public', 'genova_public_events', 'event_url');
-SELECT has_column('public', 'genova_public_events', 'category');
+SELECT has_table('public', 'genova_public_events', 'field-limited Genova public table exists');
+SELECT has_column('public', 'genova_public_events', 'title', 'public event title is exposed');
+SELECT has_column('public', 'genova_public_events', 'start_time', 'public event start is exposed');
+SELECT has_column('public', 'genova_public_events', 'location', 'public event location is exposed');
+SELECT has_column('public', 'genova_public_events', 'publisher', 'public event publisher is exposed');
+SELECT has_column('public', 'genova_public_events', 'event_url', 'public event source link is exposed');
+SELECT has_column('public', 'genova_public_events', 'category', 'public event category is exposed');
 
 SELECT results_eq(
   $$ SELECT count(*)::bigint
