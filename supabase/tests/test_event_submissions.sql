@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(19);
+SELECT plan(20);
 
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.event_submissions'::regclass),
   'submission queue has RLS');
@@ -27,6 +27,14 @@ INSERT INTO auth.users (
   ('00000000-0000-0000-0000-000000000069', 'authenticated', 'authenticated',
    'submission-visitor@example.org', '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
 INSERT INTO public.admin_users(user_id) VALUES ('00000000-0000-0000-0000-000000000068');
+
+SET LOCAL ROLE anon;
+SELECT throws_ok($INSERT INTO public.event_submissions (title, start_time, description, rights_confirmed)
+  VALUES ('Closed intake test', '2026-11-01T18:00:00+01:00', 'A complete original event description.', true)$,
+  '42501', 'community event intake is not enabled',
+  'applying the schema does not open the direct public intake API');
+RESET ROLE;
+UPDATE public.community_submission_settings SET accepting = true WHERE singleton;
 
 SET LOCAL ROLE anon;
 INSERT INTO public.event_submissions (title, start_time, description, rights_confirmed)
