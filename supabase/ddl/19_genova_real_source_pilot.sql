@@ -1,0 +1,15 @@
+-- Genova-specific real-source pilot tables are created by
+-- 20261006145500_genova_luzzati_reviewable_storage.sql.
+-- This file documents their intended steady-state shape for schema readers.
+
+-- public.genova_event_candidates
+--   Private review queue: stable source identity, facts-only event fields,
+--   nullable unknowns, category confidence, review state, first/last seen.
+--
+-- public.genova_source_scans
+--   Private per-source/run provenance: collector revision, exact index URL,
+--   robots/page status, bounded request count, outcome, safe error summary.
+--
+-- public.genova_public_events
+--   Public projection table containing only validated calendar fields.
+--   No descriptions, images, raw HTML, review metadata, or scan provenance.
