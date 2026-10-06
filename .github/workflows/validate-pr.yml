@@ -79,6 +79,9 @@ jobs:
       - name: Run fixture-only agent and admin-page tests
         run: node --test tests/genova-agent-protection.test.mjs tests/genova-admin-page.test.mjs
 
+      - name: Test community submission conversion and activation gate
+        run: node --test tests/submission-time.test.mjs tests/submission-gate.test.mjs
+
       - name: Set up Deno for Edge Function type checks
         uses: denoland/setup-deno@v2
         with:
