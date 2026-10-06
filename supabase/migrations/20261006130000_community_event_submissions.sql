@@ -23,6 +23,17 @@ CREATE TABLE public.event_submissions (
   )
 );
 
+-- Applying the migration must not open a public intake endpoint. Activate
+-- this server-owned switch only after the live route and privacy notice exist.
+CREATE TABLE public.community_submission_settings (
+  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  accepting boolean NOT NULL DEFAULT false
+);
+INSERT INTO public.community_submission_settings(singleton, accepting) VALUES (true, false);
+ALTER TABLE public.community_submission_settings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.community_submission_settings FROM PUBLIC, anon, authenticated;
+GRANT SELECT, UPDATE ON public.community_submission_settings TO service_role;
+
 CREATE INDEX event_submissions_review_idx ON public.event_submissions (status, created_at DESC);
 ALTER TABLE public.event_submissions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.event_submissions FROM PUBLIC, anon, authenticated;
@@ -55,6 +66,11 @@ CREATE POLICY "Admin edits event proposals" ON public.event_submissions
 CREATE FUNCTION public.limit_event_submissions() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.community_submission_settings
+                 WHERE singleton AND accepting) THEN
+    RAISE EXCEPTION 'community event intake is not enabled'
+      USING ERRCODE = '42501';
+  END IF;
   PERFORM pg_advisory_xact_lock(20261006, 68);
   IF (SELECT count(*) FROM public.event_submissions
       WHERE created_at > now() - interval '1 day') >= 50 THEN
