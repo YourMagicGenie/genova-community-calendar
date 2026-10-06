@@ -21,4 +21,9 @@ test('admin page offers sign-in only, labels the owner account, and contains no 
   assert.match(script, /admin_users/);
   assert.match(script, /genova-agent-run/);
   assert.match(script, /isAdmin/);
+  assert.match(html, /Event review/);
+  assert.match(script, /genova_event_facts/);
+  assert.match(script, /review_status/);
+  assert.match(script, /published/);
+  assert.doesNotMatch(script, /\.insert\([^)]*genova_event_facts|service_role|SUPABASE_SERVICE_ROLE_KEY/i);
 });
