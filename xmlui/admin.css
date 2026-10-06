@@ -143,3 +143,11 @@ td { color: #29443a; }
   .table-scroll { margin-right: -8px; }
   table { min-width: 720px; }
 }
+
+.submission-review { margin-top: 32px; padding-top: 28px; border-top: 1px solid #d9e2dc; }
+.submission-review .panel-heading { flex-wrap: wrap; }
+.submission-card { max-width: none; margin: 18px 0; padding: 18px; border: 1px solid #d9e2dc; border-radius: 12px; background: #f8faf8; }
+.submission-card h3 { margin: 0; }
+.submission-card p { margin: 4px 0; color: #53685e; }
+.submission-card textarea { width: 100%; min-height: 90px; padding: 10px 12px; border: 1px solid #bdcbc2; border-radius: 10px; font: inherit; }
+.submission-card .actions { margin: 10px 0 0; }
