@@ -1,0 +1,102 @@
+name: Run manual Giardini Luzzati pilot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genova-luzzati-manual-pilot
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    environment: genova-supabase-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROJECT_REF: eginljyhnnczeeqxwfia
+    steps:
+      - name: Check out current main without persistent GitHub credentials
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.119.0
+
+      - name: Require existing Supabase credentials
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing SUPABASE_ACCESS_TOKEN"; exit 1; }
+          test -n "$SUPABASE_DB_PASSWORD" || { echo "Missing SUPABASE_DB_PASSWORD"; exit 1; }
+
+      - name: Link the fixed Genova project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Require the reviewed Issue 51 migration to be applied
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --linked | tee "$RUNNER_TEMP/migrations.txt"
+          grep -q "20261006124729" "$RUNNER_TEMP/migrations.txt" || {
+            echo "Issue #51 persistence migration is not applied. Stop before contacting the source."
+            exit 1
+          }
+
+      - name: Collect one bounded index report
+        run: python scripts/collect_genova_luzzati.py --output "$RUNNER_TEMP/luzzati-report.json"
+
+      - name: Validate report and render transactional persistence SQL
+        run: |
+          python scripts/persist_genova_luzzati_report.py             --report "$RUNNER_TEMP/luzzati-report.json"             --revision "$GITHUB_SHA"             --output "$RUNNER_TEMP/luzzati-persist.sql"
+
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes postgresql-client
+          fi
+
+      - name: Persist reviewable facts and private scan provenance
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          test -s supabase/.temp/pooler-url || { echo "Missing linked IPv4 pooler URL."; exit 1; }
+          psql --no-psqlrc --set=ON_ERROR_STOP=1             --file "$RUNNER_TEMP/luzzati-persist.sql"             "$(cat supabase/.temp/pooler-url)"
+
+      - name: Inspect safe pilot counts
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGOPTIONS: -c default_transaction_read_only=on
+        run: |
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align             "$(cat supabase/.temp/pooler-url)" <<'SQL'
+          SELECT json_build_object(
+            'reviewable_facts', count(*),
+            'needs_review', count(*) FILTER (WHERE review_status = 'needs_review'),
+            'published', count(*) FILTER (WHERE review_status = 'published')
+          )
+          FROM public.genova_event_facts;
+
+          SELECT json_build_object(
+            'outcome', outcome,
+            'request_count', request_count,
+            'events_found', events_found,
+            'robots_decision', robots_decision,
+            'page_http_status', page_http_status
+          )
+          FROM public.genova_source_scans
+          ORDER BY started_at DESC
+          LIMIT 1;
+          SQL
