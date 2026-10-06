@@ -51,7 +51,7 @@
       </div>
 
       <div class="notice">
-        <strong>Fixture test only.</strong>
+        <strong>Agent fixture test only.</strong>
         This run checks fictional sample data. It scans zero websites and adds zero events to the public calendar.
         Source discovery and collection are not enabled here.
       </div>
@@ -80,8 +80,16 @@
           </tbody>
         </table>
       </div>
+      <section class="submission-review" aria-labelledby="submission-title">
+        <div class="panel-heading"><h2 id="submission-title">Community event submissions</h2>
+          <button id="refresh-submissions" class="button-secondary" type="button">Refresh submissions</button></div>
+        <p>These suggestions stay private until you approve them. Check the event details and text rights before publishing.</p>
+        <p id="submissions-message" class="status-message" role="status" aria-live="polite"></p>
+        <div id="submissions-list" aria-live="polite"></div>
+      </section>
     </section>
   </main>
   <script type="module" src="admin.js"></script>
+  <script type="module" src="admin-submissions.js"></script>
 </body>
 </html>

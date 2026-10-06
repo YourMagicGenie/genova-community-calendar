@@ -10,7 +10,8 @@
     "xsVerboseLogMax": 200,
     "strictDeterminism": false,
     "supabaseUrl": "https://eginljyhnnczeeqxwfia.supabase.co",
-    "supabasePublishableKey": "sb_publishable_0GG1fKOi7FinutZPb4XgTA_6M8G1NC-"
+    "supabasePublishableKey": "sb_publishable_0GG1fKOi7FinutZPb4XgTA_6M8G1NC-",
+    "communitySubmissionsEnabled": false
   },
   "resources": {
     "icon.l-user": "icons/l-user.svg",
