@@ -68,7 +68,7 @@ form.addEventListener('submit', async (event) => {
 try {
   const response = await fetch('config.json', { cache: 'no-store' });
   const { appGlobals: globals } = await response.json();
-  if (!response.ok || !globals?.supabaseUrl?.startsWith('https://') ||
+  if (!response.ok || globals?.communitySubmissionsEnabled !== true || !globals?.supabaseUrl?.startsWith('https://') ||
       !globals?.supabasePublishableKey?.startsWith('sb_publishable_')) throw new Error('Missing configuration');
   client = createClient(globals.supabaseUrl, globals.supabasePublishableKey);
 } catch {
