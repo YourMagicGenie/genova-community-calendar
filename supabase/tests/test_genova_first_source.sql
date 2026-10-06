@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(24);
+SELECT plan(25);
 
 SELECT has_table('public', 'genova_event_facts', 'reviewable Genova event facts table exists');
 SELECT has_table('public', 'genova_source_scans', 'private source scan provenance table exists');
