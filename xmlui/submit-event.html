@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Suggest an event | Porto Aperto Genova</title>
+  <link rel="stylesheet" href="submit-event.css">
+</head>
+<body>
+  <header><a href="../?city=genova">← Porto Aperto | Genova calendar</a></header>
+  <main>
+    <p class="eyebrow">Share something happening in Genova</p>
+    <h1>Suggest an event</h1>
+    <p>Tell us about a public event. An admin reviews each suggestion before it can appear in the calendar. Sending it does not guarantee publication.</p>
+    <div id="setup-error" class="message error" role="alert" hidden>The submission service is unavailable. Please try again later.</div>
+    <form id="event-form">
+      <label>Event name <input name="title" maxlength="160" minlength="3" required></label>
+      <div class="columns">
+        <label>Start date and time <input name="start" type="datetime-local" required></label>
+        <label>End date and time (optional) <input name="end" type="datetime-local"></label>
+      </div>
+      <p class="hint">Enter the event's local time in Genova (Europe/Rome). The clock-change hour may need clarification.</p>
+      <label>Description <textarea name="description" rows="6" minlength="10" maxlength="4000" required></textarea></label>
+      <label>Venue or location (optional) <input name="location" maxlength="200"></label>
+      <label>Event page or booking link (optional) <input name="url" type="url" maxlength="500" pattern="https://.*" placeholder="https://"></label>
+      <div class="columns">
+        <label>Your name (optional) <input name="submitter_name" maxlength="100"></label>
+        <label>Email for questions (optional, never published) <input name="contact_email" type="email" maxlength="254"></label>
+      </div>
+      <div class="trap" aria-hidden="true"><label>Leave this blank <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <label class="checkbox"><input name="rights_confirmed" type="checkbox" required><span>I have the right to share this event text and understand that an admin may edit or decline the listing.</span></label>
+      <p class="hint">Only approved event details become public. Your contact email is visible only to the admin for review. A detailed privacy and retention notice will be published before the form goes live. Image upload will be added later.</p>
+      <div id="preview" class="preview" hidden></div>
+      <div class="actions"><button id="preview-button" type="button">Preview</button><button id="send-button" type="submit">Send for review</button></div>
+      <p id="form-status" class="message" role="status" aria-live="polite"></p>
+    </form>
+  </main>
+  <script type="module" src="submit-event.js"></script>
+</body>
+</html>
