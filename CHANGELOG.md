@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-06 — Added a private, admin-reviewed community event submission path and public form; optional images and live calendar integration remain separate follow-ups (issue #68).
+
 - 2026-10-06 — Added a bounded robots-aware check for the candidate Giardini Luzzati event-index route, reporting only access status and page identity with no retained page copy (issue #50).
 
 - 2026-10-06 — Made the manual Luzzati probe report robots and event HTTP status, allow/disallow decision, request count, and crawl delay on success or skip, with offline regression coverage (issue #50).
