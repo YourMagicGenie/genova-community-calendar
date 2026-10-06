@@ -92,8 +92,13 @@ def load_active_source(url: str = INDEX_URL, opener=urllib.request.urlopen) -> d
     if not isinstance(rows, list) or len(rows) != 1:
         raise ProbeSkipped("exactly one active Giardini Luzzati source is required")
     source = rows[0]
-    if source.get("url") != url or source.get("city") != CITY or source.get("status") != "active":
-        raise ProbeSkipped("source approval state did not match the fixed Genova index")
+    if (
+        source.get("url") != url
+        or source.get("city") != CITY
+        or source.get("status") != "active"
+        or source.get("feed_type") != "web_index"
+    ):
+        raise ProbeSkipped("source approval state did not match the fixed Genova web index")
     return source
 
 
