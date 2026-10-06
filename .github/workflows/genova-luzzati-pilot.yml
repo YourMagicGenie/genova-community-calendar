@@ -44,14 +44,43 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Require the reviewed Issue 51 migration to be applied
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes postgresql-client
+          fi
+
+      - name: Show hosted migration history
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase migration list --linked
+
+      - name: Require the hosted Issue 51 persistence boundary
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGOPTIONS: -c default_transaction_read_only=on
+        shell: bash
         run: |
-          supabase migration list --linked | tee "$RUNNER_TEMP/migrations.txt"
-          grep -q "20261006124729" "$RUNNER_TEMP/migrations.txt" || {
-            echo "Issue #51 persistence migration is not applied. Stop before contacting the source."
+          test -s supabase/.temp/pooler-url || {
+            echo "Supabase link did not cache the IPv4 pooler URL. Stop before contacting the source."
+            exit 1
+          }
+          state="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --field-separator='|' \
+            "$(cat supabase/.temp/pooler-url)" \
+            --command "SELECT
+              to_regclass('public.genova_event_facts') IS NOT NULL,
+              to_regclass('public.genova_source_scans') IS NOT NULL,
+              EXISTS (
+                SELECT 1 FROM public.feeds
+                WHERE city='genova'
+                  AND url='https://www.spazio-comune.org/categoria-prodotto/eventi/'
+                  AND status='active'
+                  AND feed_type='web_index'
+              );")"
+          test "$state" = "t|t|t" || {
+            echo "Hosted Issue #51 schema/source approval is not ready. Stop before contacting the source."
             exit 1
           }
 
@@ -61,13 +90,6 @@ jobs:
       - name: Validate report and render transactional persistence SQL
         run: |
           python scripts/persist_genova_luzzati_report.py             --report "$RUNNER_TEMP/luzzati-report.json"             --revision "$GITHUB_SHA"             --output "$RUNNER_TEMP/luzzati-persist.sql"
-
-      - name: Ensure PostgreSQL client is available
-        run: |
-          if ! command -v psql >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --yes postgresql-client
-          fi
 
       - name: Persist reviewable facts and private scan provenance
         env:
