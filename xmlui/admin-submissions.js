@@ -126,7 +126,11 @@ async function checkAdmin() {
 try {
   const response = await fetch('config.json', {cache:'no-store'});
   const {appGlobals: config} = await response.json();
-  if (!response.ok || !config?.supabaseUrl?.startsWith('https://') ||
+  if (!response.ok || config?.communitySubmissionsEnabled !== true) {
+    document.querySelector('.submission-review').hidden = true;
+    throw new Error('not enabled');
+  }
+  if (!config?.supabaseUrl?.startsWith('https://') ||
       !config?.supabasePublishableKey?.startsWith('sb_publishable_')) throw new Error('configuration');
   client = createClient(config.supabaseUrl, config.supabasePublishableKey);
   client.auth.onAuthStateChange(() => { window.setTimeout(checkAdmin, 0); });
