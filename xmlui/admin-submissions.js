@@ -19,7 +19,7 @@ function instant(wall, previous) {
   if (!wall) return null;
   const matches = romeInstants(wall);
   if (matches.length === 1) return matches[0];
-  if (matches.length === 2 && matches.includes(new Date(previous).toISOString())) return previous;
+  if (matches.length === 2 && previous && matches.includes(new Date(previous).toISOString())) return previous;
   throw new Error('Clarify a missing or repeated Europe/Rome clock-change time.');
 }
 function field(form, label, name, value, type = 'text') {
