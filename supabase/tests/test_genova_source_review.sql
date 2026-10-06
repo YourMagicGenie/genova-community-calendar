@@ -69,8 +69,8 @@ SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000015
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000015","role":"authenticated"}', true);
 SELECT is((SELECT count(*)::int FROM public.feeds WHERE name = 'Source review pending'), 1,
   'authorized admin can review pending candidates');
-SELECT is((SELECT count(*)::int FROM public.feed_source_reviews), 2,
-  'authorized admin can inspect all review notes');
+SELECT is((SELECT count(*)::int FROM public.feed_source_reviews WHERE feed_url LIKE 'https://example.org/%'), 2,
+  'authorized admin can inspect both fixture review notes');
 UPDATE public.feeds
 SET status = 'paused'
 WHERE name = 'Source review pending';
