@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(20);
+SELECT plan(24);
 
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.event_submissions'::regclass),
   'submission queue has RLS');
@@ -44,6 +44,10 @@ SELECT is((SELECT count(*)::int FROM public.event_submissions WHERE title = 'Com
   'anonymous visitor created one private proposal');
 SELECT is((SELECT status FROM public.event_submissions WHERE title = 'Community test event'), 'pending',
   'proposal begins pending');
+SET LOCAL ROLE anon;
+SELECT is((SELECT count(*)::int FROM public.list_public_genova_events()
+  WHERE title = 'Community test event'), 0, 'pending event is absent from public route');
+RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000069', true);
@@ -69,6 +73,13 @@ RESET ROLE;
 SELECT is((SELECT count(*)::int FROM public.events
   WHERE source_uid LIKE 'community:%' AND title = 'Community test event'), 1,
   'approval creates one stable community event');
+SET LOCAL ROLE anon;
+SELECT is((SELECT count(*)::int FROM public.list_public_genova_events()
+  WHERE title = 'Community test event'), 1, 'approved event appears in public Genova route');
+SELECT is((SELECT public.get_public_community_description(id)
+  FROM public.list_public_genova_events() WHERE title = 'Community test event'),
+  'Original description for this example.', 'approved description is available without contact data');
+RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000068', true);
@@ -89,6 +100,10 @@ SELECT is(public.review_event_submission(
 RESET ROLE;
 SELECT is((SELECT count(*)::int FROM public.events WHERE title = 'Corrected community event'), 0,
   'withdrawal removes the event record');
+SET LOCAL ROLE anon;
+SELECT is((SELECT count(*)::int FROM public.list_public_genova_events()
+  WHERE title = 'Corrected community event'), 0, 'withdrawn event disappears from public route');
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;
