@@ -160,3 +160,45 @@ CREATE TRIGGER sync_approved_submission_after_edit
   AFTER UPDATE OF title, start_time, end_time, description, location, url
   ON public.event_submissions FOR EACH ROW
   EXECUTE FUNCTION public.sync_approved_submission();
+
+-- Extend the source-publication route with explicitly approved community
+-- proposals. These are individual submissions, not approved crawler sources.
+-- Keep its eight-column contract so the forthcoming public calendar can use
+-- one listing route for both kinds of events.
+CREATE OR REPLACE FUNCTION public.list_public_genova_events()
+RETURNS TABLE (
+  id bigint, title text, start_time timestamptz, end_time timestamptz,
+  location text, publisher text, url text, category text
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $function$
+  SELECT e.id, e.title, e.start_time, e.end_time, e.location,
+         e.publisher_label, e.direct_url, e.category
+  FROM public.genova_event_facts e
+  JOIN public.feeds f ON f.id = e.feed_id
+  WHERE e.review_status = 'published'
+    AND e.start_time IS NOT NULL
+    AND f.city = 'genova'
+    AND f.status = 'active'
+  UNION ALL
+  SELECT s.published_event_id, s.title, s.start_time, s.end_time, s.location,
+         'Porto Aperto community'::text, s.url, NULL::text
+  FROM public.event_submissions s
+  JOIN public.events e ON e.id = s.published_event_id
+    AND e.source_uid = 'community:' || s.id::text
+  WHERE s.status = 'approved'
+  ORDER BY start_time, id
+$function$;
+
+-- Descriptions are provided by the submitter and reviewed individually.
+-- Keep private contact and review notes out of this detail endpoint.
+CREATE FUNCTION public.get_public_community_description(p_event_id bigint)
+RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $function$
+  SELECT s.description
+  FROM public.event_submissions s
+  JOIN public.events e ON e.id = s.published_event_id
+    AND e.source_uid = 'community:' || s.id::text
+  WHERE s.status = 'approved' AND s.published_event_id = p_event_id
+$function$;
+REVOKE ALL ON FUNCTION public.get_public_community_description(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_public_community_description(bigint)
+  TO anon, authenticated, service_role;
