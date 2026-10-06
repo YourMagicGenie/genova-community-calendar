@@ -1,4 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { romeInstants } from './submission-time.mjs';
 
 const form = document.querySelector('#event-form');
@@ -70,6 +69,7 @@ try {
   const { appGlobals: globals } = await response.json();
   if (!response.ok || globals?.communitySubmissionsEnabled !== true || !globals?.supabaseUrl?.startsWith('https://') ||
       !globals?.supabasePublishableKey?.startsWith('sb_publishable_')) throw new Error('Missing configuration');
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
   client = createClient(globals.supabaseUrl, globals.supabasePublishableKey);
 } catch {
   document.querySelector('#setup-error').hidden = false;
