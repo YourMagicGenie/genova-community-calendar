@@ -108,6 +108,23 @@ def run_viewport(browser, base_url, name, width, height):
         )
         assert overflow, f"{name} viewport has horizontal page overflow"
 
+        # The community form is intentionally gated until the hosted migration
+        # and field-limited public route are ready. Its layout and local preview
+        # must still work at both desktop and phone sizes.
+        form_response = page.goto(f"{base_url}/xmlui/submit-event.html", wait_until="networkidle")
+        assert form_response and form_response.ok, "community form should load"
+        assert page.locator("#send-button").is_disabled(), "unactivated form must not accept submissions"
+        assert page.locator("#setup-error").is_visible(), "unactivated form should explain availability"
+        page.locator('input[name="title"]').fill("A local test event")
+        page.locator('input[name="start"]').fill("2026-12-15T18:00")
+        page.locator('textarea[name="description"]').fill("An original example description.")
+        page.locator('input[name="rights_confirmed"]').check()
+        page.locator("#preview-button").click()
+        assert "A local test event" in page.locator("#preview").inner_text()
+        assert page.evaluate("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth"), (
+            f"{name} submission page has horizontal overflow"
+        )
+
         if console_errors or page_errors:
             raise AssertionError(
                 f"browser errors: console={console_errors!r}; page={page_errors!r}"
