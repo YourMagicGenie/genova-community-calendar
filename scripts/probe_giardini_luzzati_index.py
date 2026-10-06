@@ -23,6 +23,7 @@ from scripts.probe_giardini_luzzati import (
     MAX_CRAWL_DELAY_SECONDS,
     MAX_RESPONSE_BYTES,
     SOURCE_NAME,
+    USER_AGENT,
     ProbeSkipped,
     _http_get,
     _robots_rules,
@@ -112,10 +113,7 @@ def probe_index(url: str = INDEX_URL, get=_http_get, sleeper=time.sleep) -> dict
             robots_decision = "missing_no_rules"
             robots_path_allowed = True
         else:
-            robots_path_allowed = robots.can_fetch(
-                "GenovaCommunityCalendarProbe/0.1 (+https://github.com/YourMagicGenie/genova-community-calendar)",
-                url,
-            )
+            robots_path_allowed = robots.can_fetch(USER_AGENT, url)
             robots_decision = "allowed" if robots_path_allowed else "disallowed"
             if not robots_path_allowed:
                 raise ProbeSkipped("robots.txt disallows this event-index path")
