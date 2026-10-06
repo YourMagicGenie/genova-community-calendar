@@ -80,6 +80,29 @@
           </tbody>
         </table>
       </div>
+
+      <section class="review-section" aria-labelledby="event-review-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Real-source pilot</p>
+            <h2 id="event-review-heading">Event review</h2>
+          </div>
+          <button id="refresh-events-button" class="button-secondary" type="button">Refresh events</button>
+        </div>
+        <p>Collected facts stay private until you validate and publish them. Publishing requires a known start time and an active approved source.</p>
+        <p id="event-review-message" class="status-message" role="status" aria-live="polite"></p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th scope="col">Status</th><th scope="col">Start</th><th scope="col">Event</th>
+              <th scope="col">Location</th><th scope="col">Publisher</th><th scope="col">Actions</th>
+            </tr></thead>
+            <tbody id="event-facts-body">
+              <tr><td colspan="6">Sign in to review collected real events.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </section>
   </main>
   <script type="module" src="admin.js"></script>
