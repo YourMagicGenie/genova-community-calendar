@@ -38,7 +38,8 @@ def test_index_parser_preserves_unknowns_and_separate_showtimes():
     known = next(event for event in events if event["title"] == "Nessuno ci insegna a cadere")
     assert known["start_time"] == "2026-10-06T18:00:00+02:00"
     assert known["location"] == "Giardini Luzzati - Spazio Comune"
-    assert known["description"] if "description" in known else True
+    assert "description" not in known
+    assert "image_url" not in known
     assert known["review_status"] == "needs_review"
 
     unknown = next(event for event in events if event["title"] == "Evento senza data")
