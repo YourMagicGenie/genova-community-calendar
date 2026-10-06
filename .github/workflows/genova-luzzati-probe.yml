@@ -1,13 +1,23 @@
-name: Giardini Luzzati one-event probe
+name: Giardini Luzzati bounded probe
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Fixed read-only source target to verify
+        required: true
+        default: event
+        type: choice
+        options:
+          - event
+          - index
 
 permissions:
   contents: read
 
 jobs:
-  probe:
+  probe-event:
+    if: ${{ inputs.target == 'event' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -19,3 +29,17 @@ jobs:
           python-version: "3.12"
       - name: Check robots.txt and probe one event
         run: python scripts/probe_giardini_luzzati.py
+
+  probe-index:
+    if: ${{ inputs.target == 'index' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check robots.txt and probe the candidate event index
+        run: python scripts/probe_giardini_luzzati_index.py
