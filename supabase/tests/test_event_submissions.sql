@@ -29,8 +29,8 @@ INSERT INTO auth.users (
 INSERT INTO public.admin_users(user_id) VALUES ('00000000-0000-0000-0000-000000000068');
 
 SET LOCAL ROLE anon;
-SELECT throws_ok($INSERT INTO public.event_submissions (title, start_time, description, rights_confirmed)
-  VALUES ('Closed intake test', '2026-11-01T18:00:00+01:00', 'A complete original event description.', true)$,
+SELECT throws_ok($$INSERT INTO public.event_submissions (title, start_time, description, rights_confirmed)
+  VALUES ('Closed intake test', '2026-11-01T18:00:00+01:00', 'A complete original event description.', true)$$,
   '42501', 'community event intake is not enabled',
   'applying the schema does not open the direct public intake API');
 RESET ROLE;
