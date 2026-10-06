@@ -11,16 +11,13 @@ on:
         options:
           - event
           - index
-  push:
-    branches:
-      - probe/giardini-luzzati-index-once-20261006
 
 permissions:
   contents: read
 
 jobs:
   probe-event:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'event' }}
+    if: ${{ inputs.target == 'event' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -34,7 +31,7 @@ jobs:
         run: python scripts/probe_giardini_luzzati.py
 
   probe-index:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'index') }}
+    if: ${{ inputs.target == 'index' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
