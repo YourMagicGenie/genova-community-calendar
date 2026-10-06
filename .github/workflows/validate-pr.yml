@@ -80,7 +80,7 @@ jobs:
         run: node --test tests/genova-agent-protection.test.mjs tests/genova-admin-page.test.mjs
 
       - name: Test community event time conversion
-        run: node --test tests/submission-time.test.mjs
+        run: node --test tests/submission-time.test.mjs tests/submission-gate.test.mjs
 
       - name: Set up Deno for Edge Function type checks
         uses: denoland/setup-deno@v2
