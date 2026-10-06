@@ -1,0 +1,30 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #18322d; background: #f3f6f3; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main { width: min(720px, calc(100% - 32px)); margin: auto; }
+header { padding: 22px 0; }
+a { color: #194b3a; font-weight: 700; }
+main { padding: 12px 0 64px; }
+.eyebrow { color: #537462; text-transform: uppercase; letter-spacing: .1em; font-size: .78rem; font-weight: 750; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); margin: 8px 0; }
+p { line-height: 1.5; }
+form { display: grid; gap: 18px; padding: clamp(18px, 4vw, 32px); border: 1px solid #d5e2d8; border-radius: 18px; background: white; }
+label { display: grid; gap: 7px; font-weight: 700; }
+input, textarea, button { font: inherit; }
+input:not([type="checkbox"]), textarea { width: 100%; padding: 12px; border: 1px solid #b9ccc0; border-radius: 9px; color: #18322d; }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid #89bba1; outline-offset: 2px; }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.hint { margin: -8px 0 0; color: #53685e; font-size: .88rem; }
+.checkbox { display: flex; align-items: flex-start; gap: 10px; line-height: 1.4; }
+.checkbox input { width: 20px; height: 20px; flex: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+button { min-height: 44px; padding: 10px 16px; border-radius: 9px; border: 1px solid #194b3a; background: #194b3a; color: white; font-weight: 700; cursor: pointer; }
+button:first-child { background: white; color: #194b3a; }
+button:disabled { opacity: .6; cursor: wait; }
+.message { min-height: 1.4em; margin: 0; }
+.error { color: #9a382c; }
+.success { color: #246148; }
+.preview { padding: 16px; border: 1px solid #c4d9c8; border-radius: 10px; background: #f2f8f3; white-space: pre-wrap; }
+.trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) { .columns { grid-template-columns: 1fr; } }
