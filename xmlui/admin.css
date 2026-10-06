@@ -143,3 +143,5 @@ td { color: #29443a; }
   .table-scroll { margin-right: -8px; }
   table { min-width: 720px; }
 }
+
+.review-section{margin-top:32px;padding-top:28px;border-top:1px solid #d9e2dc}.review-section>p{max-width:70ch;color:#54675f}.review-source-link{color:#19533f;font-size:.78rem;font-weight:700}.event-actions{display:flex;gap:8px;flex-wrap:wrap}.event-actions button{min-height:36px;padding:7px 10px;font-size:.78rem;white-space:nowrap}
