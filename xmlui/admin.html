@@ -80,6 +80,18 @@
           </tbody>
         </table>
       </div>
+      <section class="review-section" aria-labelledby="event-review-heading">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Real-source pilot</p><h2 id="event-review-heading">Collected event review</h2></div>
+          <button id="refresh-events-button" class="button-secondary" type="button">Refresh events</button>
+        </div>
+        <p>Collected source facts stay private until you validate and publish them. Publishing requires a known start time and an active approved source.</p>
+        <p id="event-review-message" class="status-message" role="status" aria-live="polite"></p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Status</th><th>Start</th><th>Event</th><th>Location</th><th>Publisher</th><th>Actions</th></tr></thead>
+          <tbody id="event-facts-body"><tr><td colspan="6">Sign in to review collected real events.</td></tr></tbody>
+        </table></div>
+      </section>
       <section class="submission-review" aria-labelledby="submission-title">
         <div class="panel-heading"><h2 id="submission-title">Community event submissions</h2>
           <button id="refresh-submissions" class="button-secondary" type="button">Refresh submissions</button></div>
