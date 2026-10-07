@@ -14,8 +14,6 @@ import json
 import re
 import sys
 import time
-import urllib.parse
-import urllib.request
 from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -64,39 +62,17 @@ def _source_uid(feed_id: int, url: str, start_time: str | None) -> str:
     return "genova-luzzati:" + hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
 
-def _load_public_config() -> tuple[str, str]:
-    config = json.loads((REPO_ROOT / "xmlui" / "config.json").read_text(encoding="utf-8"))
-    globals_ = config["appGlobals"]
-    return globals_["supabaseUrl"].rstrip("/"), globals_["supabasePublishableKey"]
-
-
-def load_active_source(url: str = INDEX_URL, opener=urllib.request.urlopen) -> dict:
-    """Return the exact active source row or fail closed."""
-    supabase_url, publishable_key = _load_public_config()
-    query = urllib.parse.urlencode({
-        "select": "id,city,url,name,status,feed_type,publisher_url,discovery_method",
-        "city": f"eq.{CITY}",
-        "url": f"eq.{url}",
-        "status": "eq.active",
-        "limit": "2",
-    })
-    request = urllib.request.Request(
-        f"{supabase_url}/rest/v1/feeds?{query}",
-        headers={"apikey": publishable_key, "user-agent": USER_AGENT},
-    )
-    try:
-        with opener(request, timeout=20) as response:
-            rows = json.loads(response.read().decode("utf-8"))
-    except Exception as error:
-        raise ProbeSkipped("active source state could not be read") from error
-    if not isinstance(rows, list) or len(rows) != 1:
-        raise ProbeSkipped("exactly one active Giardini Luzzati source is required")
-    source = rows[0]
+def validate_active_source(source: dict, url: str = INDEX_URL) -> dict:
+    """Validate the trusted source snapshot supplied by the guarded workflow."""
+    if not isinstance(source, dict):
+        raise ProbeSkipped("approved source snapshot is invalid")
     if (
         source.get("url") != url
         or source.get("city") != CITY
         or source.get("status") != "active"
         or source.get("feed_type") != "web_index"
+        or not isinstance(source.get("id"), int)
+        or source["id"] < 1
     ):
         raise ProbeSkipped("source approval state did not match the fixed Genova web index")
     return source
@@ -228,8 +204,8 @@ def parse_index(html: str, feed_id: int, publisher: str = SOURCE_NAME) -> list[d
     return events
 
 
-def collect(source_loader=load_active_source, get=_http_get, sleeper=time.sleep) -> dict:
-    source = source_loader(INDEX_URL)
+def collect(source: dict, get=_http_get, sleeper=time.sleep) -> dict:
+    source = validate_active_source(source, INDEX_URL)
     request_count = 0
 
     def tracked_get(url: str):
@@ -277,10 +253,20 @@ def collect(source_loader=load_active_source, get=_http_get, sleeper=time.sleep)
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--source",
+        required=True,
+        help="trusted JSON source snapshot produced by the guarded pilot workflow",
+    )
     parser.add_argument("--output", help="write the facts-only report to this JSON file")
     args = parser.parse_args()
     try:
-        report = collect()
+        source = json.loads(Path(args.source).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        print(json.dumps({"status": "skipped", "reason": "approved source snapshot could not be read"}, sort_keys=True))
+        return 2
+    try:
+        report = collect(source)
     except ProbeSkipped as error:
         print(json.dumps({"status": "skipped", "reason": str(error)}, sort_keys=True))
         return 2
