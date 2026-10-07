@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-07 — Fixed the manual Giardini Luzzati pilot to pass its already-verified active source snapshot from the guarded database check into the collector instead of re-reading `feeds` through the intentionally restricted public Data API (issue #51).
+
 - 2026-10-06 — Prepared a gated, private, admin-reviewed community event submission path and public form; activation awaits hosted migration, live calendar integration, and privacy copy (issue #68).
 
 - 2026-10-06 — Added the first-source persistence/review boundary for Issue #51: Luzzati is registered in the existing feed registry, collected facts and scan provenance are private by default, publication requires an active source plus known start time, and the public route exposes only reviewed facts.
