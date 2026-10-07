@@ -11,5 +11,7 @@ test("manual Luzzati workflow verifies hosted persistence state before source co
   assert.match(workflow, /to_regclass\('public\.genova_source_scans'\)/);
   assert.match(workflow, /status='active'/);
   assert.match(workflow, /feed_type='web_index'/);
+  assert.match(workflow, /luzzati-source\.json/);
+  assert.match(workflow, /--source "\$RUNNER_TEMP\/luzzati-source\.json"/);
   assert.doesNotMatch(workflow, /grep -q "20261006124729"/);
 });
