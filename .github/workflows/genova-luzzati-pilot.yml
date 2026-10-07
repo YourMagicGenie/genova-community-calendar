@@ -84,8 +84,35 @@ jobs:
             exit 1
           }
 
+          source_json="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align \
+            "$(cat supabase/.temp/pooler-url)" \
+            --command "SELECT json_build_object(
+              'id', id,
+              'city', city,
+              'url', url,
+              'name', name,
+              'status', status,
+              'feed_type', feed_type,
+              'publisher_url', publisher_url,
+              'discovery_method', discovery_method
+            )
+            FROM public.feeds
+            WHERE city='genova'
+              AND url='https://www.spazio-comune.org/categoria-prodotto/eventi/'
+              AND status='active'
+              AND feed_type='web_index'
+            LIMIT 1;")"
+          test -n "$source_json" || {
+            echo "Approved Luzzati source snapshot is empty. Stop before contacting the source."
+            exit 1
+          }
+          printf '%s\n' "$source_json" > "$RUNNER_TEMP/luzzati-source.json"
+
       - name: Collect one bounded index report
-        run: python scripts/collect_genova_luzzati.py --output "$RUNNER_TEMP/luzzati-report.json"
+        run: |
+          python scripts/collect_genova_luzzati.py \
+            --source "$RUNNER_TEMP/luzzati-source.json" \
+            --output "$RUNNER_TEMP/luzzati-report.json"
 
       - name: Validate report and render transactional persistence SQL
         run: |
