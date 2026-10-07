@@ -77,7 +77,7 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
             return FakeResponse(200, url, b"User-agent: *\nAllow: /categoria-prodotto/eventi/\n")
         return FakeResponse(200, url, body)
 
-    result = collect(source_loader=active_source, get=get, sleeper=lambda _: None)
+    result = collect(active_source(), get=get, sleeper=lambda _: None)
 
     assert calls == ["https://www.spazio-comune.org/robots.txt", INDEX_URL]
     assert result["access"]["request_count"] == 2
@@ -91,12 +91,11 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
 
 def test_collection_fails_closed_before_web_fetch_when_source_is_not_active():
     calls = []
+    source = active_source()
+    source["status"] = "paused"
 
-    def unavailable(_url):
-        raise ProbeSkipped("exactly one active Giardini Luzzati source is required")
-
-    with pytest.raises(ProbeSkipped, match="active"):
-        collect(source_loader=unavailable, get=lambda url: calls.append(url))
+    with pytest.raises(ProbeSkipped, match="approval state"):
+        collect(source, get=lambda url: calls.append(url))
 
     assert calls == []
 
@@ -109,6 +108,6 @@ def test_collection_stops_when_exact_index_path_is_disallowed():
         return FakeResponse(200, url, b"User-agent: *\nDisallow: /categoria-prodotto/eventi/\n")
 
     with pytest.raises(ProbeSkipped, match="disallows"):
-        collect(source_loader=active_source, get=get, sleeper=lambda _: None)
+        collect(active_source(), get=get, sleeper=lambda _: None)
 
     assert calls == ["https://www.spazio-comune.org/robots.txt"]
