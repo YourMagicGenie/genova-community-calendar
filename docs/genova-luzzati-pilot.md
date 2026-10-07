@@ -2,7 +2,7 @@
 
 The first real-source import remains manual. The workflow **Run manual Giardini Luzzati pilot** has no schedule and uses the same `genova-supabase-bootstrap` environment already used for reviewed migrations.
 
-Before it contacts the publisher, it verifies that migration `20261006124729_genova_first_source_persistence.sql` is present in hosted migration history. The collector then performs its bounded robots/index request, validates the facts-only report, and persists the result transactionally.
+Before it contacts the publisher, it verifies that migration `20261006124729_genova_first_source_persistence.sql` is present in hosted migration history. The same guarded database check writes a minimal approved-source JSON snapshot for the collector. The collector does not query the public Supabase Data API for source approval; that route is intentionally unavailable to browser roles after the security hardening. It validates the trusted snapshot, performs its bounded robots/index request, validates the facts-only report, and persists the result transactionally.
 
 Persistence rules:
 
@@ -15,4 +15,4 @@ Persistence rules:
 
 The workflow prints only aggregate review counts and safe source-health fields. It does not upload raw HTML or the collector report as an artifact.
 
-For the 2026-10-06 pilot, do not run this workflow again: Issue #50 already used the source's request budget for that day. The first manual persistence run should occur on a later day after the hosted migration is applied.
+On 2026-10-07 the first persistence-backed run stopped before contacting the publisher because the collector still attempted to re-read `feeds` through the intentionally restricted public Data API. The workflow now passes the already-verified source snapshot directly to the collector, preserving the fail-closed approval check without reopening public table grants.
