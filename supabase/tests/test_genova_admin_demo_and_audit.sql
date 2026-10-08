@@ -57,6 +57,7 @@ UPDATE public.genova_event_facts SET start_time=now(), review_status='validated'
 SELECT throws_ok($$UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit'$$,
   'published Genova events require title, location, category, and source link', 'incomplete facts cannot be published');
 UPDATE public.genova_event_facts SET location='Example venue', category='music' WHERE source_uid='issue86-admin-audit';
+UPDATE public.genova_event_facts SET review_status='needs_review' WHERE source_uid='issue86-admin-audit';
 SELECT throws_ok($$UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit'$$,
   'Genova events must be validated before publication', 'needs-review facts cannot skip validation');
 UPDATE public.genova_event_facts SET review_status='validated' WHERE source_uid='issue86-admin-audit';
