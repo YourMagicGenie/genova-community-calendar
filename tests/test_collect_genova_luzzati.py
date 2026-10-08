@@ -293,3 +293,16 @@ def test_detail_limit_rejects_values_above_the_hard_cap_before_fetching():
     with pytest.raises(ProbeSkipped, match="between 0 and 12"):
         collect(active_source(), get=lambda url: calls.append(url), detail_page_limit=13)
     assert calls == []
+
+
+def test_detail_page_metadata_is_used_when_jsonld_is_absent():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = (FIXTURE.parent / "luzzati-detail-meta.html").read_text(encoding="utf-8")
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["start_time"] == "2026-10-14T19:30:00+02:00"
+    assert event["end_time"] == "2026-10-14T21:00:00+02:00"
+    assert event["location"] == "Giardini Luzzati"
+    assert event["category"] == "music"
+    assert event["category_confidence"] == 0.95
+    assert "page_metadata" in event["evidence_note"]
