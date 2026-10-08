@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-08 — Added a manual, robots-aware cap for Luzzati detail-page checks, facts-only extraction with evidence labels, and scan provenance for the actual request budget; all collected rows stay in admin review (issue #87).
+
 - 2026-10-08 — Made the Giardini Luzzati index parser handle list, div, and article card layouts and report safe aggregate counts when parsing yields no events, without retaining publisher page content (issue #80).
 
 - 2026-10-07 — Fixed the manual Giardini Luzzati pilot to pass its already-verified active source snapshot from the guarded database check into the collector instead of re-reading `feeds` through the intentionally restricted public Data API (issue #51).

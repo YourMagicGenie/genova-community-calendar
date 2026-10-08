@@ -2,6 +2,12 @@ name: Run manual Giardini Luzzati pilot
 
 on:
   workflow_dispatch:
+    inputs:
+      detail_page_limit:
+        description: 'Maximum same-host event pages to check after the index (0-12)'
+        required: true
+        default: 2
+        type: number
 
 permissions:
   contents: read
@@ -15,7 +21,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     environment: genova-supabase-bootstrap
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     env:
       PROJECT_REF: eginljyhnnczeeqxwfia
     steps:
@@ -78,9 +84,19 @@ jobs:
                   AND url='https://www.spazio-comune.org/categoria-prodotto/eventi/'
                   AND status='active'
                   AND feed_type='web_index'
-              );")"
-          test "$state" = "t|t|t" || {
-            echo "Hosted Issue #51 schema/source approval is not ready. Stop before contacting the source."
+              ),
+              EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conrelid='public.genova_source_scans'::regclass
+                  AND conname='genova_source_scans_request_count_check'
+                  AND pg_get_constraintdef(oid) LIKE '%14%'
+              ),
+              (SELECT count(*) = 2 FROM information_schema.columns
+                WHERE table_schema='public'
+                  AND table_name='genova_source_scans'
+                  AND column_name IN ('detail_page_limit', 'detail_pages_checked'));")"
+          test "$state" = "t|t|t|t|t" || {
+            echo "Hosted Issue #51 schema/source or Issue #87 request-budget migration is not ready. Stop before contacting the source."
             exit 1
           }
 
@@ -108,11 +124,12 @@ jobs:
           }
           printf '%s\n' "$source_json" > "$RUNNER_TEMP/luzzati-source.json"
 
-      - name: Collect one bounded index report
+      - name: Collect the index and the configured number of bounded detail pages
         run: |
           python scripts/collect_genova_luzzati.py \
             --source "$RUNNER_TEMP/luzzati-source.json" \
-            --output "$RUNNER_TEMP/luzzati-report.json"
+            --output "$RUNNER_TEMP/luzzati-report.json" \\
+            --detail-page-limit "${{ inputs.detail_page_limit }}"
 
       - name: Validate report and render transactional persistence SQL
         run: |
@@ -141,6 +158,8 @@ jobs:
           SELECT json_build_object(
             'outcome', outcome,
             'request_count', request_count,
+            'detail_page_limit', detail_page_limit,
+            'detail_pages_checked', detail_pages_checked,
             'events_found', events_found,
             'robots_decision', robots_decision,
             'page_http_status', page_http_status

@@ -19,7 +19,7 @@ HOST = "www.spazio-comune.org"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 EVENT_FIELDS = {
     "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-    "normalized_url", "source_uid", "category", "category_confidence", "review_status",
+    "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note",
 }
 
 
@@ -48,8 +48,14 @@ def validate_report(report: dict) -> None:
     if access.get("robots_decision") not in {"allowed", "missing_no_rules"}:
         raise ValueError("a blocked or unavailable source report cannot persist event facts")
     request_count = access.get("request_count")
-    if not isinstance(request_count, int) or not 1 <= request_count <= 2:
-        raise ValueError("report request count violates the bounded pilot")
+    details_checked = access.get("detail_pages_checked")
+    detail_limit = access.get("detail_page_limit")
+    if (
+        isinstance(details_checked, bool) or not isinstance(details_checked, int) or not 0 <= details_checked <= 12
+        or isinstance(detail_limit, bool) or not isinstance(detail_limit, int) or not details_checked <= detail_limit <= 12
+        or isinstance(request_count, bool) or not isinstance(request_count, int) or request_count != 2 + details_checked
+    ):
+        raise ValueError("report request count violates the robots + index + bounded detail-page budget")
     if not isinstance(events, list) or len(events) > 500:
         raise ValueError("report event list is invalid or unexpectedly large")
 
@@ -77,8 +83,11 @@ def validate_report(report: dict) -> None:
         _iso_or_none(event.get("start_time"), "start_time")
         _iso_or_none(event.get("end_time"), "end_time")
         confidence = event.get("category_confidence")
-        if confidence is not None and (not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
+        if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
             raise ValueError("category confidence must be between zero and one")
+        evidence = event.get("evidence_note")
+        if evidence is not None and (not isinstance(evidence, str) or len(evidence) > 240):
+            raise ValueError("evidence note must be a short safe summary")
 
 
 def render_sql(report: dict, revision: str) -> str:
@@ -97,8 +106,8 @@ VALUES (convert_from(decode('{encoded}', 'base64'), 'UTF8')::jsonb);
 
 INSERT INTO public.genova_source_scans (
   feed_id, collector_revision, requested_url, robots_decision,
-  robots_http_status, page_http_status, request_count, outcome,
-  events_found, finished_at
+  robots_http_status, page_http_status, request_count,
+  detail_page_limit, detail_pages_checked, outcome, events_found, finished_at
 )
 SELECT
   (payload #>> '{{source,id}}')::bigint,
@@ -108,6 +117,8 @@ SELECT
   NULLIF(payload #>> '{{access,robots_http_status}}', '')::integer,
   NULLIF(payload #>> '{{access,page_http_status}}', '')::integer,
   (payload #>> '{{access,request_count}}')::integer,
+  (payload #>> '{{access,detail_page_limit}}')::integer,
+  (payload #>> '{{access,detail_pages_checked}}')::integer,
   'succeeded',
   COALESCE((payload ->> 'events_found')::integer, jsonb_array_length(payload -> 'events')),
   now()
@@ -131,7 +142,7 @@ SELECT
   NULLIF(event ->> 'category', ''),
   NULLIF(event ->> 'category_confidence', '')::numeric,
   'needs_review',
-  'Giardini Luzzati public event index; collector revision {revision}',
+  COALESCE(NULLIF(event ->> 'evidence_note', ''), 'Giardini Luzzati public event; collector revision {revision}'),
   now(),
   now()
 FROM _genova_luzzati_report,
