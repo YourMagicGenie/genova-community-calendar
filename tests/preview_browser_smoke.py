@@ -42,14 +42,23 @@ def run_viewport(browser, base_url, name, width, height):
     page.route("**/favicon.ico", lambda route: route.fulfill(status=204))
     # Keep the visual smoke test deterministic and independent of production
     # database contents while exercising the same public demo RPC contract.
-    page.route(
-        "**/rest/v1/rpc/list_genova_demo_events",
-        lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps(DEMO_EVENTS),
-        ),
-    )
+    def fulfill_demo_rpc(route):
+        cors = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "apikey, authorization, content-type",
+        }
+        if route.request.method == "OPTIONS":
+            route.fulfill(status=204, headers=cors)
+        else:
+            route.fulfill(
+                status=200,
+                headers=cors,
+                content_type="application/json",
+                body=json.dumps(DEMO_EVENTS),
+            )
+
+    page.route("**/rest/v1/rpc/list_genova_demo_events", fulfill_demo_rpc)
 
     try:
         response = page.goto(f"{base_url}/?city=genova&preview=sample", wait_until="networkidle")
