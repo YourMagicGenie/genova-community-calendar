@@ -219,7 +219,7 @@ def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and
     ("title", "description", "expected"),
     [
         ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops"),
-        ("Una serata speciale", "Proiezione di un film e incontro con il regista.", "art-exhibitions"),
+        ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions"),
         ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours"),
     ],
 )
