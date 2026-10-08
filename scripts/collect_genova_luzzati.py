@@ -364,6 +364,10 @@ class _DetailParser(HTMLParser):
         classes = set(attrs.get("class", "").casefold().split())
         if tag in {"main", "article"} or classes.intersection({"product", "summary", "entry-summary", "product-summary"}):
             self.scope_tags.append(tag)
+        if tag in {"address", "article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"}:
+            self.text.append("\n")
+            if self.scope_tags:
+                self.scoped_text.append("\n")
         if tag == "h1":
             self.in_h1, self.h1_data = True, []
 
@@ -379,6 +383,10 @@ class _DetailParser(HTMLParser):
             if value:
                 self.h1.append(value)
             self.in_h1, self.h1_data = False, []
+        if tag in {"address", "article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"}:
+            self.text.append("\n")
+            if self.scope_tags:
+                self.scoped_text.append("\n")
         for index in range(len(self.scope_tags) - 1, -1, -1):
             if self.scope_tags[index] == tag:
                 del self.scope_tags[index:]
@@ -418,8 +426,15 @@ def _category(value):
     if isinstance(value, dict):
         return _category(value.get("name") or value.get("@value"))
     if isinstance(value, str):
-        key = CATEGORY_ALIASES.get(value.strip().casefold())
-        return (key, 0.95) if key else (None, None)
+        label = value.strip().casefold()
+        key = CATEGORY_ALIASES.get(label)
+        if key:
+            return key, 0.95
+        for part in re.split(r"[,;|]", label):
+            key = CATEGORY_ALIASES.get(part.strip())
+            if key:
+                return key, 0.95
+        return None, None
     return None, None
 
 
