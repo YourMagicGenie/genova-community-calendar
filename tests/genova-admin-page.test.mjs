@@ -27,3 +27,9 @@ test('admin page offers sign-in only, labels the owner account, and contains no 
   assert.match(script, /published/);
   assert.doesNotMatch(script, /service_role|SUPABASE_SERVICE_ROLE_KEY/i);
 });
+
+
+test("source review queue excludes superseded audit placeholders", async () => {
+  const source = await readFile(new URL("../xmlui/admin.js", import.meta.url), "utf8");
+  assert.match(source, /\.is\("superseded_by", null\)/);
+});

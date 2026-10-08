@@ -47,12 +47,13 @@ def test_report_validation_accepts_unknown_fields_and_separate_occurrences():
 def test_persistence_sql_appends_scan_and_upserts_without_delete_or_publish():
     sql = render_sql(report(), REVISION)
     assert "INSERT INTO public.genova_source_scans" in sql
-    assert "INSERT INTO public.genova_event_facts" in sql
-    assert "ON CONFLICT (source_uid) DO UPDATE" in sql
+    assert "SELECT public.import_genova_luzzati_facts" in sql
+    assert "payload -> 'events'" in sql
     assert "DELETE FROM public.genova_event_facts" not in sql
     assert "review_status = EXCLUDED.review_status" not in sql
-    assert "'needs_review'" in sql
-    assert "evidence_note" in sql
+    import base64, re
+    encoded = re.search(r"decode\('([^']+)', 'base64'\)", sql).group(1)
+    assert json.loads(base64.b64decode(encoded)) == report()
     assert "detail_page_limit, detail_pages_checked" in sql
     assert "COMMIT;" in sql
 

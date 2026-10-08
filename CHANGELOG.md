@@ -1,5 +1,7 @@
 # Changelog
 
+- Preserve enriched undated source records as linked audit history, show only active facts in the admin queue, suppress partial-date regressions, and keep collector imports from overwriting reviewed corrections.
+
 - Luzzati manual pilots now keep a seven-day facts-only diagnostic artifact and show each discovered candidate’s fetch coverage, partial dates, field gaps, and extraction methods. Nested product markup no longer ends the event classification scope early.
 
 - 2026-10-02 — Connected the inherited client configuration to the owner-controlled Genova Supabase project while keeping the public calendar on clearly labeled fictional fixtures; no live events or collection are enabled ([issue #11](https://github.com/YourMagicGenie/genova-community-calendar/issues/11)).

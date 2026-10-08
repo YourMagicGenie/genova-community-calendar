@@ -76,7 +76,8 @@ jobs:
           state="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --field-separator='|' \
             "$(cat supabase/.temp/pooler-url)" \
             --command "SELECT
-              to_regclass('public.genova_event_facts') IS NOT NULL,
+              to_regclass('public.genova_event_facts') IS NOT NULL
+              AND to_regprocedure('public.import_genova_luzzati_facts(bigint,jsonb)') IS NOT NULL,
               to_regclass('public.genova_source_scans') IS NOT NULL,
               EXISTS (
                 SELECT 1 FROM public.feeds
@@ -165,8 +166,10 @@ jobs:
         run: |
           psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align             "$(cat supabase/.temp/pooler-url)" <<'SQL'
           SELECT json_build_object(
-            'reviewable_facts', count(*),
-            'needs_review', count(*) FILTER (WHERE review_status = 'needs_review'),
+            'stored_facts', count(*),
+            'reviewable_facts', count(*) FILTER (WHERE superseded_by IS NULL),
+            'superseded_placeholders', count(*) FILTER (WHERE superseded_by IS NOT NULL),
+            'needs_review', count(*) FILTER (WHERE review_status = 'needs_review' AND superseded_by IS NULL),
             'published', count(*) FILTER (WHERE review_status = 'published')
           )
           FROM public.genova_event_facts;

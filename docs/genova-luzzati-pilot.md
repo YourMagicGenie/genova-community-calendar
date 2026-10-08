@@ -48,3 +48,21 @@ hosted schema/source preflight still runs before any source request. Review
 the artifact and possible stale variants before considering publication or
 a second-source comparison. A successful HTTP response or passing offline
 test alone does not establish live extraction accuracy.
+
+## Occurrence reconciliation (#93)
+
+Apply the reviewed supersession migration before using the updated importer.
+The workflow preflight checks the trusted import function before source contact.
+The migration reconciles existing pending undated/dated pairs only when the
+source URL has exactly one known occurrence and the titles match. It retains
+both row IDs, original source UIDs, evidence, first/last-seen timestamps and
+review state; `superseded_by` and `superseded_at` explain the link.
+
+Subsequent imports use the same rule only for a single dated report occurrence.
+Shared-URL series, mismatched titles and already-reviewed placeholders remain
+for human reconciliation. Partial/index-only scans do not recreate undated rows
+when a known occurrence exists. Collector refreshes never overwrite validated,
+published or rejected records. The admin queue excludes linked audit rows; an
+admin can still inspect them through the private table. Browser users cannot
+forge supersession links or change imported identity. No records are deleted
+and no publication or recurring collection is enabled by this change.
