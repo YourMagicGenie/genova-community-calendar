@@ -561,6 +561,11 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
     explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
     if explicit_category and category_match:
         explicit_confidence = 0.85
+    category_evidence = (
+        "source_category_label" if category_match
+        else "category_metadata" if meta_category
+        else None
+    )
     if not explicit_category:
         description_parts = (
             parser.meta.get("description", [])
@@ -572,6 +577,8 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
             next(iter(parser.h1), None) or index_event["title"],
             " ".join(description_parts),
         )
+        if explicit_category:
+            category_evidence = "title_or_description_keywords"
     if not facts:
         facts = [(None, None, None, None, None, None)]
     output = []
@@ -590,7 +597,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
         if location:
             evidence.append("location=event_metadata_or_visible_text")
         if category:
-            evidence.append("category=explicit_taxonomy_label")
+            evidence.append(f"category={category_evidence or 'event_metadata'}")
         output.append({
             "feed_id": feed_id, "title": title, "start_time": start, "end_time": end,
             "location": location, "publisher": index_event["publisher"],
