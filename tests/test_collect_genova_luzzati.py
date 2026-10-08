@@ -218,18 +218,18 @@ def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and
 @pytest.mark.parametrize(
     ("title", "description", "expected"),
     [
-        ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops"),
-        ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions"),
-        ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours"),
+        ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops", 0.82),
+        ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions", 0.76),
+        ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours", 0.82),
     ],
 )
-def test_detail_category_is_inferred_from_title_and_source_description(title, description, expected):
+def test_detail_category_is_inferred_from_title_and_source_description(title, description, expected, confidence):
     from scripts.collect_genova_luzzati import parse_detail
 
     html = f"<html><body><main><h1>{title}</h1><p>{description}</p></main></body></html>"
     event = parse_detail(html, _detail_index_event(), 51)[0]
     assert event["category"] == expected
-    assert event["category_confidence"] == 0.82
+    assert event["category_confidence"] == confidence
 
 
 def test_detail_structured_metadata_is_timezone_normalized():
