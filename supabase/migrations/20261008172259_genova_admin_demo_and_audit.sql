@@ -168,7 +168,7 @@ BEGIN
     id,title,category,categories,days_from_today,start_time,venue,source_name,source_url,tags
   )
   SELECT e->>'id', e->>'title', e->>'category',
-    COALESCE(ARRAY(SELECT jsonb_array_elements_text(e->'categories')), ARRAY[e->>'category']),
+    CASE WHEN e ? 'categories' THEN ARRAY(SELECT jsonb_array_elements_text(e->'categories')) ELSE ARRAY[e->>'category'] END,
     (e->>'daysFromToday')::integer, NULLIF(e->>'startTime','null'), e->>'venue',
     e->>'sourceName', e->>'sourceUrl',
     COALESCE(ARRAY(SELECT jsonb_array_elements_text(e->'tags')), ARRAY[]::text[])
@@ -199,7 +199,7 @@ GRANT EXECUTE ON FUNCTION public.clear_genova_demo_events() TO authenticated;
 
 -- The public preview starts with its existing fictional fixture set.
 INSERT INTO public.genova_demo_events (id,title,category,categories,days_from_today,start_time,venue,source_name,source_url,tags)
-SELECT e->>'id',e->>'title',e->>'category',COALESCE(ARRAY(SELECT jsonb_array_elements_text(e->'categories')),ARRAY[e->>'category']),
+SELECT e->>'id',e->>'title',e->>'category',CASE WHEN e ? 'categories' THEN ARRAY(SELECT jsonb_array_elements_text(e->'categories')) ELSE ARRAY[e->>'category'] END,
 (e->>'daysFromToday')::integer,NULLIF(e->>'startTime','null'),e->>'venue',e->>'sourceName',e->>'sourceUrl',
 COALESCE(ARRAY(SELECT jsonb_array_elements_text(e->'tags')),ARRAY[]::text[])
 FROM jsonb_array_elements($sample_events$[
