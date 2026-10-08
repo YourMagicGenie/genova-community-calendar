@@ -51,9 +51,9 @@ def validate_report(report: dict) -> None:
     details_checked = access.get("detail_pages_checked")
     detail_limit = access.get("detail_page_limit")
     if (
-        not isinstance(details_checked, int) or not 0 <= details_checked <= 12
-        or not isinstance(detail_limit, int) or not details_checked <= detail_limit <= 12
-        or not isinstance(request_count, int) or request_count != 2 + details_checked
+        isinstance(details_checked, bool) or not isinstance(details_checked, int) or not 0 <= details_checked <= 12
+        or isinstance(detail_limit, bool) or not isinstance(detail_limit, int) or not details_checked <= detail_limit <= 12
+        or isinstance(request_count, bool) or not isinstance(request_count, int) or request_count != 2 + details_checked
     ):
         raise ValueError("report request count violates the robots + index + bounded detail-page budget")
     if not isinstance(events, list) or len(events) > 500:
@@ -83,7 +83,7 @@ def validate_report(report: dict) -> None:
         _iso_or_none(event.get("start_time"), "start_time")
         _iso_or_none(event.get("end_time"), "end_time")
         confidence = event.get("category_confidence")
-        if confidence is not None and (not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
+        if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
             raise ValueError("category confidence must be between zero and one")
         evidence = event.get("evidence_note")
         if evidence is not None and (not isinstance(evidence, str) or len(evidence) > 240):
