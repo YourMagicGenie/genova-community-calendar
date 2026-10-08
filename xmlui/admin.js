@@ -163,6 +163,7 @@ async function refreshEventFacts() {
     const { data, error } = await supabase
       .from("genova_event_facts")
       .select("id, title, start_time, location, publisher_label, direct_url, category, category_confidence, review_status, last_seen")
+      .is("superseded_by", null)
       .order("start_time", { ascending: true, nullsFirst: false })
       .limit(100);
     if (error) throw error;

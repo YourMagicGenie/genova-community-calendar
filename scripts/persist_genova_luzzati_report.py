@@ -124,42 +124,9 @@ SELECT
   now()
 FROM _genova_luzzati_report;
 
-INSERT INTO public.genova_event_facts (
-  feed_id, source_uid, title, start_time, end_time, location,
-  publisher_label, direct_url, normalized_url, category,
-  category_confidence, review_status, evidence_note, first_seen, last_seen
-)
-SELECT
-  (event ->> 'feed_id')::bigint,
-  event ->> 'source_uid',
-  event ->> 'title',
-  NULLIF(event ->> 'start_time', '')::timestamptz,
-  NULLIF(event ->> 'end_time', '')::timestamptz,
-  NULLIF(event ->> 'location', ''),
-  event ->> 'publisher',
-  event ->> 'url',
-  event ->> 'normalized_url',
-  NULLIF(event ->> 'category', ''),
-  NULLIF(event ->> 'category_confidence', '')::numeric,
-  'needs_review',
-  COALESCE(NULLIF(event ->> 'evidence_note', ''), 'Giardini Luzzati public event; collector revision {revision}'),
-  now(),
-  now()
-FROM _genova_luzzati_report,
-LATERAL jsonb_array_elements(payload -> 'events') AS event
-ON CONFLICT (source_uid) DO UPDATE SET
-  title = EXCLUDED.title,
-  start_time = EXCLUDED.start_time,
-  end_time = EXCLUDED.end_time,
-  location = EXCLUDED.location,
-  publisher_label = EXCLUDED.publisher_label,
-  direct_url = EXCLUDED.direct_url,
-  category = EXCLUDED.category,
-  category_confidence = EXCLUDED.category_confidence,
-  last_seen = now(),
-  evidence_note = EXCLUDED.evidence_note
-WHERE public.genova_event_facts.feed_id = EXCLUDED.feed_id
-  AND public.genova_event_facts.normalized_url = EXCLUDED.normalized_url;
+SELECT public.import_genova_luzzati_facts(
+  (payload #>> '{{source,id}}')::bigint, payload -> 'events'
+) FROM _genova_luzzati_report;
 
 COMMIT;
 """
