@@ -265,7 +265,7 @@ def test_collection_stops_before_a_disallowed_detail_path():
 
     with pytest.raises(ProbeSkipped, match="detail path"):
         collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=1)
-    assert calls == ["https://www.spazio-comune.org/robots.txt"]
+    assert calls == ["https://www.spazio-comune.org/robots.txt", INDEX_URL]
 
 
 def test_collection_stops_after_detail_page_rate_limit():
