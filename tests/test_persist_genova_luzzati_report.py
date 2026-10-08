@@ -53,6 +53,7 @@ def test_persistence_sql_appends_scan_and_upserts_without_delete_or_publish():
     assert "review_status = EXCLUDED.review_status" not in sql
     assert "'needs_review'" in sql
     assert "evidence_note" in sql
+    assert "detail_page_limit, detail_pages_checked" in sql
     assert "COMMIT;" in sql
 
 
