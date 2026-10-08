@@ -1,6 +1,6 @@
 # Genova event agent operating contract
 
-This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission for recurring collection. Do not connect credentials or run production collection until the admin-only controls and approved-source workflow in Issue #5 are implemented. A separate manual one-event probe may make one public page request only after checking that exact path in robots.txt; it has no credentials, database connection, or write path.
+This file defines the operating rules for a future Genova event-discovery agent. It is not a running agent, a source approval, or permission for recurring collection. The isolated one-event probe remains read-only and checks one fixed page after robots.txt. The separately gated Giardini Luzzati pilot may use its approved active source to check one index plus a configurable, bounded set of same-host detail pages as documented in `docs/genova-luzzati-adapter.md`; it remains manual and never auto-publishes.
 
 ## Pilot boundary and purpose
 
@@ -59,7 +59,7 @@ Multiple categories may apply. `date-night` is an optional extra tag, never a re
 
 ## Access, credentials, and costs
 
-- Use public event indexes and publisher-supported unauthenticated feeds by default. For the initial pilot, fetch one listing/index page per source and do not fetch every event detail page.
+- Use public event indexes and publisher-supported unauthenticated feeds by default. For the Luzzati pilot, request one index and at most two detail pages by default (configurable to twelve only for a deliberate manual run); check robots rules on each path, stay same-host, request sequentially, honor crawl delays, and stop on disallow or rate limiting. Do not enable recurring scans.
 - Keep automated requests sequential and no more frequent than once per source per day after the initial pilot. Use caching/conditional requests where supported, honor published crawl delays, identify the calendar in the User-Agent, and back off on rate-limit or server-error responses.
 - Never put secrets, service-role keys, personal access tokens, or private source credentials in this file, event records, logs, or client-side code.
 - Do not enable paid AI, search, scraping, or hosting services; recurring scans; or scheduled agent runs unless the maintainer has reviewed expected cost, quotas, access, and recovery steps and explicitly approved them.
@@ -71,10 +71,9 @@ Multiple categories may apply. `date-night` is an optional extra tag, never a re
 When the approved admin workflow exists, each run should report its trigger and time, this instruction file's version/commit, candidates discovered, approved active sources scanned, events added/updated/cancelled, items needing review, and source-level failures. Do not expose private review notes or admin run history on the public calendar.
 
 The Issue #5 fixture workflow remains the admin-agent test path: it validates
-fictional fixtures, scans no websites, and writes no events. The separate
-Giardini Luzzati probe is a manual, one-event, read-only check. It first checks
-robots.txt for the exact fixed event URL, prints only the calendar facts, and
-never writes to Supabase or the public calendar. Neither workflow implements
-regular source discovery or production collection. Use this file as the
-agent's reviewed operating contract; do not treat either workflow as approval
-for recurring collection.
+fictional fixtures, scans no websites, and writes no events. The isolated
+Giardini Luzzati one-event probe is read-only. The separate Issue #51/#87
+collector is a manual, robots-aware, active-source-gated pilot. Its request
+budget, review-only persistence, and failure behavior are documented in
+`docs/genova-luzzati-adapter.md`. None of these workflows authorizes recurring
+collection or automatic publication.
