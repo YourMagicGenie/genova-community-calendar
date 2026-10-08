@@ -221,6 +221,7 @@ def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and
         ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops", 0.82),
         ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions", 0.76),
         ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours", 0.82),
+        ("Jazzercise", "Una serata nel quartiere.", None, None),
     ],
 )
 def test_detail_category_is_inferred_from_title_and_source_description(title, description, expected, confidence):
