@@ -4,12 +4,12 @@ Issue #51's first collector is intentionally narrower than a production crawler.
 
 - It reads the exact Giardini Luzzati index source from the existing `feeds` registry and requires `status=active`. If approval state cannot be read, it makes no publisher request.
 - It checks `robots.txt` for the exact verified index path and then makes at most one index-page GET.
-- It never follows event links. The index parser emits only title, listed Europe/Rome date/time, listed venue, publisher, direct event URL, normalized URL, stable source identity, and review placeholders.
+- It never follows event links. The index parser identifies same-host `/prodotto/` anchors, associates them with nearby product/event cards across common `li`, `div`, and `article` layouts, then emits only title, listed Europe/Rome date/time, listed venue, publisher, direct event URL, normalized URL, stable source identity, and review placeholders.
 - Missing date/time/location remain null. Multiple explicitly listed showtimes become separate occurrences.
-- Output is facts-only JSON for the next persistence/review slice. No HTML, description, image, cookie, or response body is retained.
-- There is no schedule. The live Issue #50 verification already used today's source request budget, so this adapter must not be live-run again on 2026-10-06.
+- Output is facts-only JSON for the persistence/review slice. It includes aggregate parser diagnostics (qualifying links, distinct candidate URLs, formed records, titles, dates, and times) so a zero-event result is diagnosable. No HTML, description, image, cookie, or response body is retained.
+- There is no schedule. After offline parser work is merged, any live verification remains a separate manual run, limited to robots plus at most one index request.
 
-The offline fixture is representative of the parser contract; it is not a claim that every field appears on the current live index.
+The offline fixtures cover the original list-style card, div/article theme cards, repeated title/thumbnail links, missing facts, ignored off-host/non-product links, an empty index, and a candidate record with no title. They exercise the parser contract without claiming that every field appears on the current live index.
 
 ## Persistence boundary
 
