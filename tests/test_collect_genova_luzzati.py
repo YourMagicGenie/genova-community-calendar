@@ -196,6 +196,43 @@ def test_detail_text_extracts_showtimes_venue_and_explicit_category():
     assert all(event["review_status"] == "needs_review" for event in events)
 
 
+
+def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and_infers_category():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = """
+    <html><head><meta name="description" content="Un concerto jazz dal vivo per la serata."></head>
+    <body><main class="product-summary"><h1>Concerto jazz al tramonto</h1><p>Una serata musicale.</p></main>
+    <div class="event-date">Martedì 6 ottobre 2026 – ore 18.00</div>
+    <p>Giardini Luzzati - Spazio Comune</p></body></html>
+    """
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["title"] == "Concerto jazz al tramonto"
+    assert event["start_time"] == "2026-10-06T18:00:00+02:00"
+    assert event["location"] == "Giardini Luzzati - Spazio Comune"
+    assert event["category"] == "music"
+    assert event["category_confidence"] == 0.82
+    assert "date_time=visible_event_text" in event["evidence_note"]
+
+
+@pytest.mark.parametrize(
+    ("title", "description", "expected", "confidence"),
+    [
+        ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops", 0.82),
+        ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions", 0.76),
+        ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours", 0.82),
+        ("Jazzercise", "Una serata nel quartiere.", None, None),
+    ],
+)
+def test_detail_category_is_inferred_from_title_and_source_description(title, description, expected, confidence):
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = f"<html><body><main><h1>{title}</h1><p>{description}</p></main></body></html>"
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["category"] == expected
+    assert event["category_confidence"] == confidence
+
+
 def test_detail_structured_metadata_is_timezone_normalized():
     from scripts.collect_genova_luzzati import parse_detail
 
