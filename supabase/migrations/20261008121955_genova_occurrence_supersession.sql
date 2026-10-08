@@ -34,7 +34,7 @@ BEGIN
     RAISE EXCEPTION 'supersession requires a dated occurrence of the same source URL';
   END IF;
   IF NEW.start_time IS NULL AND EXISTS (
-    SELECT 1 FROM public.genova_event_facts old WHERE old.superseded_by = NEW.id
+    SELECT 1 FROM public.genova_event_facts placeholder WHERE placeholder.superseded_by = NEW.id
   ) THEN
     RAISE EXCEPTION 'a supersession target must retain its known start time';
   END IF;
