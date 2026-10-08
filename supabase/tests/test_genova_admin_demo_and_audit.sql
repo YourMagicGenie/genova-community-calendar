@@ -55,7 +55,7 @@ SELECT is((SELECT old_values->>'title' FROM public.genova_event_fact_audit WHERE
 SELECT is((SELECT new_values->>'normalized_url' FROM public.genova_event_fact_audit WHERE source_uid='issue86-admin-audit'), 'https://www.spazio-comune.org/prodotto/issue86-corrected/', 'audit records canonical link corrections');
 UPDATE public.genova_event_facts SET start_time=now(), review_status='validated' WHERE source_uid='issue86-admin-audit';
 SELECT throws_ok($$UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit'$$,
-  'published Genova events require title, start time, location, category, and source link', 'incomplete facts cannot be published');
+  'published Genova events require title, location, category, and source link', 'incomplete facts cannot be published');
 UPDATE public.genova_event_facts SET location='Example venue', category='music' WHERE source_uid='issue86-admin-audit';
 SELECT throws_ok($$UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit'$$,
   'Genova events must be validated before publication', 'needs-review facts cannot skip validation');
@@ -63,7 +63,7 @@ UPDATE public.genova_event_facts SET review_status='validated' WHERE source_uid=
 UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit';
 SELECT is((SELECT count(*)::int FROM public.list_public_genova_events() WHERE title='Corrected from the website'), 1, 'complete validated event can be published');
 SELECT throws_ok($$UPDATE public.genova_event_facts SET location=NULL WHERE source_uid='issue86-admin-audit'$$,
-  'published Genova events require title, start time, location, category, and source link', 'published facts cannot be edited into an incomplete state');
+  'published Genova events require title, location, category, and source link', 'published facts cannot be edited into an incomplete state');
 SELECT is(public.replace_genova_demo_events('[{"id":"sample-test-event","title":"Test event","category":"music","daysFromToday":5,"startTime":"19:00","venue":"Example venue, Genova","sourceName":"Example publisher","sourceUrl":"https://example.org/test","tags":[]}]'::jsonb), 1, 'admin can restore one valid fictional event');
 SELECT is((SELECT count(*)::int FROM public.list_genova_demo_events()), 1, 'restored event returns through the public demo route');
 SELECT throws_ok($$SELECT public.replace_genova_demo_events('[{"id":"sample-bad","title":"Test","category":"music","daysFromToday":5,"startTime":"19:00","venue":"Example","sourceName":"Example","sourceUrl":"https://real-events.it/test","tags":[]}]'::jsonb)$$, 'demo event fields are invalid', 'restore rejects a non-fictional publisher link');

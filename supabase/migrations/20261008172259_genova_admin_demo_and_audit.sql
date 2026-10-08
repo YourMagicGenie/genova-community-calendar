@@ -11,11 +11,14 @@ CREATE OR REPLACE FUNCTION public.guard_genova_event_publication()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 BEGIN
   IF NEW.review_status = 'published' THEN
-    IF NEW.title IS NULL OR btrim(NEW.title) = '' OR NEW.start_time IS NULL
+    IF NEW.start_time IS NULL THEN
+      RAISE EXCEPTION 'published Genova events require a start time';
+    END IF;
+    IF NEW.title IS NULL OR btrim(NEW.title) = ''
       OR NEW.location IS NULL OR btrim(NEW.location) = ''
       OR NEW.category IS NULL OR btrim(NEW.category) = ''
       OR NEW.direct_url IS NULL OR btrim(NEW.direct_url) = '' THEN
-      RAISE EXCEPTION 'published Genova events require title, start time, location, category, and source link';
+      RAISE EXCEPTION 'published Genova events require title, location, category, and source link';
     END IF;
     IF TG_OP = 'INSERT' OR OLD.review_status NOT IN ('validated', 'published') THEN
       RAISE EXCEPTION 'Genova events must be validated before publication';
