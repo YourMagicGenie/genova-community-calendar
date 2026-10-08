@@ -21,3 +21,30 @@ On 2026-10-07 the first persistence-backed run stopped before contacting the pub
 ## Zero-event diagnostics
 
 The collector report includes only aggregate parser-stage counts: same-host product links, distinct candidate URLs, records formed, records with titles, records with dates, and records with times. These counts distinguish an empty index from candidates that fail card, title, or date/time extraction. The report does not retain response HTML, card text, descriptions, images, or cookies.
+
+## Candidate diagnostics (Issue #87)
+
+Every discovered candidate now appears in the Actions summary and the
+`luzzati-candidate-diagnostics` artifact (JSON plus Markdown, retained seven
+days). The JSON records index-only vs detail-fetched coverage, HTTP status,
+redirect host, explicit year/date text, local time, normalized timestamp,
+precision, location/category, extraction methods, and unresolved reasons.
+Date snippets contain only the matched date, never descriptions or full HTML.
+Yearless dates remain null timestamps; partial facts are diagnostic only and
+are not yet separate database columns. `visible_page_fallback` explicitly
+flags extraction outside the selected event scope for manual verification.
+
+The existing fail-closed behavior is preserved: robots denial or a failed
+detail request stops the run, preserves available diagnostics, and prevents
+persistence. Selected but unrequested candidates say `stopped_after_failure`;
+candidates outside the cap say `not_fetched_cap`. No recurrence or publication
+is enabled. The count inspection also reports URLs that have both undated and
+dated facts, without changing or merging them. One URL can have multiple
+valid occurrences. Reconciliation remains separate work.
+
+After checks and merge, use **Run manual Giardini Luzzati pilot** on `main`
+with `detail_page_limit=12` for the bounded full-detail experiment. Its existing
+hosted schema/source preflight still runs before any source request. Review
+the artifact and possible stale variants before considering publication or
+a second-source comparison. A successful HTTP response or passing offline
+test alone does not establish live extraction accuracy.

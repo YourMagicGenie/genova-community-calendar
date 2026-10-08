@@ -128,6 +128,25 @@ jobs:
         run: |
           python scripts/collect_genova_luzzati.py --source "$RUNNER_TEMP/luzzati-source.json" --output "$RUNNER_TEMP/luzzati-report.json" --detail-page-limit "${{ inputs.detail_page_limit }}"
 
+      - name: Write candidate diagnostics to the Actions summary
+        if: ${{ always() }}
+        run: |
+          if test -s "$RUNNER_TEMP/luzzati-report.json"; then
+            python scripts/summarize_genova_luzzati_report.py --report "$RUNNER_TEMP/luzzati-report.json" --output "$RUNNER_TEMP/luzzati-diagnostics.md"
+            cat "$RUNNER_TEMP/luzzati-diagnostics.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Preserve the transient facts-only diagnostic report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: luzzati-candidate-diagnostics
+          path: |
+            ${{ runner.temp }}/luzzati-report.json
+            ${{ runner.temp }}/luzzati-diagnostics.md
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Validate report and render transactional persistence SQL
         run: |
           python scripts/persist_genova_luzzati_report.py             --report "$RUNNER_TEMP/luzzati-report.json"             --revision "$GITHUB_SHA"             --output "$RUNNER_TEMP/luzzati-persist.sql"
@@ -151,6 +170,17 @@ jobs:
             'published', count(*) FILTER (WHERE review_status = 'published')
           )
           FROM public.genova_event_facts;
+
+          -- Inspect possible stale enrichment variants without merging showtimes.
+          SELECT json_build_object(
+            'normalized_url', normalized_url,
+            'unknown_time_rows', count(*) FILTER (WHERE start_time IS NULL),
+            'dated_occurrences', count(*) FILTER (WHERE start_time IS NOT NULL)
+          )
+          FROM public.genova_event_facts
+          GROUP BY feed_id, normalized_url
+          HAVING count(*) FILTER (WHERE start_time IS NULL) > 0
+             AND count(*) FILTER (WHERE start_time IS NOT NULL) > 0;
 
           SELECT json_build_object(
             'outcome', outcome,
