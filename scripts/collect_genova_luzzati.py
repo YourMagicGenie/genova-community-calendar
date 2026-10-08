@@ -477,6 +477,19 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
                 location = location[0] if len(location) == 1 and isinstance(location[0], str) else None
             category, confidence = _category(node.get("category") or node.get("keywords"))
             facts.append((start, end, location if isinstance(location, str) else None, category, confidence, "structured_event_metadata"))
+    meta = parser.meta
+    def meta_first(*names):
+        for name in names:
+            values = meta.get(name.casefold(), [])
+            if values:
+                return values[0]
+        return None
+    meta_start = _metadata_time(meta_first("event:start_time", "event:start_date", "startdate", "startdatetime", "start_time"))
+    meta_end = _metadata_time(meta_first("event:end_time", "event:end_date", "enddate", "enddatetime", "end_time"))
+    meta_location = meta_first("event:location", "location", "place:location")
+    meta_category, meta_confidence = _category(meta_first("article:section", "category", "keywords"))
+    if not facts and meta_start:
+        facts.append((meta_start, meta_end, meta_location, meta_category, meta_confidence, "page_metadata"))
     if not facts:
         dates = []
         for match in DETAIL_DATE_RE.finditer(text):
@@ -495,10 +508,10 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
                 for h, m in times
             ]
     venue_match = VENUE_RE.search(text)
-    venue = " ".join(venue_match.group(0).split()) if venue_match else None
+    venue = " ".join(venue_match.group(0).split()) if venue_match else meta_location
     category_match = CATEGORY_LINE_RE.search(text)
-    explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (None, None)
-    if explicit_category:
+    explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
+    if explicit_category and category_match:
         explicit_confidence = 0.85
     if not facts:
         facts = [(None, None, None, None, None, None)]
