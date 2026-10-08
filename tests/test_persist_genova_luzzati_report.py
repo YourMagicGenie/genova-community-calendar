@@ -27,6 +27,8 @@ def report():
             "robots_decision": "allowed",
             "page_http_status": 200,
             "request_count": 2,
+            "detail_page_limit": 2,
+            "detail_pages_checked": 0,
             "crawl_delay_seconds": 0,
         },
         "events": events,
@@ -50,6 +52,7 @@ def test_persistence_sql_appends_scan_and_upserts_without_delete_or_publish():
     assert "DELETE FROM public.genova_event_facts" not in sql
     assert "review_status = EXCLUDED.review_status" not in sql
     assert "'needs_review'" in sql
+    assert "evidence_note" in sql
     assert "COMMIT;" in sql
 
 
@@ -61,7 +64,7 @@ def test_report_validation_fails_closed(mutation):
     elif mutation == "blocked":
         value["access"]["robots_decision"] = "disallowed"
     elif mutation == "too_many_requests":
-        value["access"]["request_count"] = 3
+        value["access"]["request_count"] = 15
     elif mutation == "foreign_host":
         value["events"][0]["url"] = "https://example.org/event/"
     elif mutation == "published":
