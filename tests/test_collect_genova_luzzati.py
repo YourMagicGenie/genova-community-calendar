@@ -266,3 +266,30 @@ def test_collection_stops_before_a_disallowed_detail_path():
     with pytest.raises(ProbeSkipped, match="detail path"):
         collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=1)
     assert calls == ["https://www.spazio-comune.org/robots.txt"]
+
+
+def test_collection_stops_after_detail_page_rate_limit():
+    body = '<li class="product"><a href="/prodotto/one/"><h2>One</h2></a></li><li class="product"><a href="/prodotto/two/"><h2>Two</h2></a></li>'.encode()
+    calls = []
+
+    def get(url):
+        calls.append(url)
+        if url.endswith("/robots.txt"):
+            return FakeResponse(200, url, b"User-agent: *\nAllow: /\n")
+        if url == INDEX_URL:
+            return FakeResponse(200, url, body)
+        return FakeResponse(429, url)
+
+    with pytest.raises(ProbeSkipped, match="rate-limited"):
+        collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=2)
+    assert calls == [
+        "https://www.spazio-comune.org/robots.txt", INDEX_URL,
+        "https://www.spazio-comune.org/prodotto/one/",
+    ]
+
+
+def test_detail_limit_rejects_values_above_the_hard_cap_before_fetching():
+    calls = []
+    with pytest.raises(ProbeSkipped, match="between 0 and 12"):
+        collect(active_source(), get=lambda url: calls.append(url), detail_page_limit=13)
+    assert calls == []
