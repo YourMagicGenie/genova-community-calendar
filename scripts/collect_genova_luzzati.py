@@ -63,14 +63,14 @@ CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", 
 CATEGORY_KEYWORDS = {
     "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
     "theatre-performance": ("teatro", "spettacolo", "performance", "danza", "cabaret", "commedia"),
-    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "cinematografico", "cinematografica", "proiezione", "film"),
+    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "cinematografico", "cinematografica", "proiezione", "documentario", "documentary", "film"),
     "sports": ("sport", "partita", "torneo", "fitness", "allenamento", "gara"),
     "food-drink": ("degustazione", "cucina", "vino", "birra", "aperitivo", "cena", "street food"),
     "festivals-markets": ("festival", "mercato", "mercatino", "fiera", "sagra"),
-    "talks-workshops": ("laboratorio", "workshop", "corso", "conferenza", "presentazione", "poesia", "lettura"),
+    "talks-workshops": ("laboratorio", "workshop", "corso", "conferenza", "presentazione", "poesia", "lettura", "libro", "book", "autore", "scrittore", "firma copie", "dibattito"),
     "family": ("bambini", "famiglie", "per bambini", "family", "kids"),
     "outdoors-tours": ("escursione", "trekking", "passeggiata", "visita guidata", "tour", "natura"),
-    "community-social": ("comunita", "sociale", "incontro", "giochi", "socialita"),
+    "community-social": ("comunita", "socialita", "giochi", "ritrovo", "social gathering"),
 }
 MONTHS = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
@@ -571,7 +571,6 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
             parser.meta.get("description", [])
             + parser.meta.get("og:description", [])
             + parser.scoped_text
-            + parser.text
         )
         explicit_category, explicit_confidence = _infer_category(
             next(iter(parser.h1), None) or index_event["title"],
