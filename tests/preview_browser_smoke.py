@@ -5,12 +5,14 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
+import json
 import re
 
 from playwright.sync_api import sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[1]
+DEMO_EVENTS = json.loads((ROOT / "xmlui" / "sample-events.json").read_text(encoding="utf-8"))
 ARTIFACTS = ROOT / "browser-smoke-artifacts"
 VIEWPORTS = (
     ("desktop", 1280, 900),
@@ -38,6 +40,16 @@ def run_viewport(browser, base_url, name, width, height):
     # Browsers may probe this conventional path even though the sample page
     # intentionally has no favicon. Keep that implicit request out of the test.
     page.route("**/favicon.ico", lambda route: route.fulfill(status=204))
+    # Keep the visual smoke test deterministic and independent of production
+    # database contents while exercising the same public demo RPC contract.
+    page.route(
+        "**/rest/v1/rpc/list_genova_demo_events",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(DEMO_EVENTS),
+        ),
+    )
 
     try:
         response = page.goto(f"{base_url}/?city=genova&preview=sample", wait_until="networkidle")

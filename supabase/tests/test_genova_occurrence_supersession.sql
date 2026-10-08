@@ -40,7 +40,8 @@ SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('protected-u','protec
 UPDATE public.genova_event_facts SET review_status='validated', title='Human correction' WHERE source_uid='genova-luzzati:protected-u';
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('protected-d','protected','2026-10-12T18:00:00+02:00','Human correction')));
 SELECT is((SELECT count(*)::int FROM public.genova_event_facts WHERE normalized_url LIKE '%/protected/' AND superseded_by IS NULL),2,'reviewed undated identity requires human reconciliation');
-UPDATE public.genova_event_facts SET review_status='published', title='Published correction', location='Curated venue' WHERE source_uid='genova-luzzati:protected-d';
+UPDATE public.genova_event_facts SET review_status='validated', title='Published correction', location='Curated venue', category='community-social' WHERE source_uid='genova-luzzati:protected-d';
+UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='genova-luzzati:protected-d';
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('protected-d','protected','2026-10-12T18:00:00+02:00','Publisher change')));
 SELECT is((SELECT title FROM public.genova_event_facts WHERE source_uid='genova-luzzati:protected-d'),'Published correction','collector does not overwrite a reviewed title');
 SELECT is((SELECT location FROM public.genova_event_facts WHERE source_uid='genova-luzzati:protected-d'),'Curated venue','collector preserves curated fields');

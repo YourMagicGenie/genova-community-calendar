@@ -13,9 +13,9 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">Porto Aperto | Genova</p>
-        <h1>Private admin</h1>
+        <h1>Calendar admin</h1>
       </div>
-      <span class="admin-label">YMGAdmin</span>
+      <div class="topbar-actions"><a class="admin-label" href="genova-sample-preview.html?city=genova&amp;preview=sample">Open calendar</a><span class="admin-label">YMGAdmin</span></div>
     </header>
 
     <section id="setup-message" class="notice notice-error" role="alert" hidden>
@@ -45,10 +45,30 @@
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Signed in as YMGAdmin</p>
-          <h2>Agent run history</h2>
+          <h2>Calendar tools</h2>
         </div>
         <button id="sign-out-button" class="button-secondary" type="button">Sign out</button>
       </div>
+
+      <section class="demo-management" aria-labelledby="demo-heading">
+        <div class="panel-heading"><div><p class="eyebrow">Safe practice area</p><h2 id="demo-heading">Fictional demo events</h2></div>
+          <a class="button-link button-secondary" href="genova-sample-preview.html?city=genova&amp;preview=sample">View calendar</a></div>
+        <p>These examples are clearly fictional. Loading or clearing them never changes collected, community-submitted, or published events.</p>
+        <p id="demo-count" class="demo-count" aria-live="polite">Sign in to check demo events.</p>
+        <div class="actions"><button id="load-demo-events-button" type="button">Restore demo events</button>
+          <button id="clear-demo-events-button" class="button-danger" type="button">Remove demo events</button></div>
+        <p id="demo-message" class="status-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="review-section" aria-labelledby="event-review-heading">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Real-source pilot</p><h2 id="event-review-heading">Collected event review</h2></div>
+          <button id="refresh-events-button" class="button-secondary" type="button">Refresh events</button>
+        </div>
+        <p>Collected source facts stay private until you validate and publish them. Publishing requires a complete, validated event and an active approved source.</p>
+        <p id="event-review-message" class="status-message" role="status" aria-live="polite"></p>
+        <div id="event-facts-body" class="event-card-list"><p>Sign in to review collected real events.</p></div>
+      </section>
 
       <div class="notice">
         <strong>Agent fixture test only.</strong>
@@ -80,18 +100,6 @@
           </tbody>
         </table>
       </div>
-      <section class="review-section" aria-labelledby="event-review-heading">
-        <div class="panel-heading">
-          <div><p class="eyebrow">Real-source pilot</p><h2 id="event-review-heading">Collected event review</h2></div>
-          <button id="refresh-events-button" class="button-secondary" type="button">Refresh events</button>
-        </div>
-        <p>Collected source facts stay private until you validate and publish them. Publishing requires a known start time and an active approved source.</p>
-        <p id="event-review-message" class="status-message" role="status" aria-live="polite"></p>
-        <div class="table-scroll"><table>
-          <thead><tr><th>Status</th><th>Start</th><th>Event</th><th>Location</th><th>Publisher</th><th>Actions</th></tr></thead>
-          <tbody id="event-facts-body"><tr><td colspan="6">Sign in to review collected real events.</td></tr></tbody>
-        </table></div>
-      </section>
       <section class="submission-review" aria-labelledby="submission-title">
         <div class="panel-heading"><h2 id="submission-title">Community event submissions</h2>
           <button id="refresh-submissions" class="button-secondary" type="button">Refresh submissions</button></div>

@@ -98,8 +98,10 @@ test('public source and city defaults contain Genova only and no approved publis
 
 test('sample page labels itself as fictional and uses only local runtime assets', () => {
   const html = readFileSync(new URL('../xmlui/genova-sample-preview.html', `file://${__filename}`), 'utf8');
-  assert.match(html, /Live status:[\s\S]*No live Genova event feed is connected yet/);
-  assert.match(html, /Preview only:[\s\S]*fictional example data/);
+  assert.match(html, /Real events appear after admin review and approval/);
+  assert.match(html, /Open the admin page to restore or remove them/);
+  assert.match(html, /examples are fictional[\s\S]*never real listings/);
+  assert.match(html, /Fictional demo calendar/);
   assert.match(html, /href="\.\.\/\?city=genova&amp;preview=sample"/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
   assert.doesNotMatch(html, /shell\.js|config\.json|supabase(?:-js|\.co)/i);
@@ -203,9 +205,27 @@ test('time filters use Europe/Rome calendar dates and retain unknown times as un
 test('fixture loader fails closed when sample data cannot be fetched', async () => {
   const api = requirePreview();
   await assert.rejects(
-    api.loadSampleEvents(async () => ({ ok: false, status: 404 })),
-    /sample events/i,
+    api.loadSampleEvents(async () => ({ ok: false, status: 404 }), undefined, {
+      supabaseUrl: 'https://example.supabase.co', supabasePublishableKey: 'sb_publishable_test',
+    }),
+    /demo events/i,
   );
+});
+
+test('demo calendar reads only the public demo RPC and accepts the empty state', async () => {
+  const api = requirePreview();
+  let request;
+  const events = await api.loadSampleEvents(async (url, options) => {
+    request = { url, options };
+    return { ok: true, json: async () => [] };
+  }, require('../genova-taxonomy.json'), {
+    supabaseUrl: 'https://example.supabase.co/', supabasePublishableKey: 'sb_publishable_test',
+  });
+  assert.deepEqual(events, []);
+  assert.equal(request.url, 'https://example.supabase.co/rest/v1/rpc/list_genova_demo_events');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.headers.apikey, 'sb_publishable_test');
+  assert.equal(request.options.body, '{}');
 });
 
 test('event renderer shows source, category and unknown time without inventing a time', () => {

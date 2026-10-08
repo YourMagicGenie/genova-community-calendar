@@ -14,7 +14,7 @@
       <span class="brand-mark" aria-hidden="true">PA</span>
       <span>Porto Aperto <span class="brand-divider">|</span> Genova</span>
     </a>
-    <span class="timezone">Europe/Rome</span>
+    <nav class="site-nav" aria-label="Site links"><span class="timezone">Europe/Rome</span><a href="admin.html">Admin</a></nav>
   </header>
 
   <main>
@@ -22,8 +22,9 @@
       <p class="eyebrow">Good things are happening nearby</p>
       <h1 id="page-title">Find your next plan in Genova.</h1>
       <p class="intro-copy">One local calendar for music, theatre, art, sport, food and getting out together.</p>
-      <p class="sample-notice"><strong>Live status:</strong> No live Genova event feed is connected yet.</p>
-      <p class="sample-notice"><strong>Preview only:</strong> every event, venue and source below is fictional example data. Nothing here is a live listing.</p>
+      <p class="sample-notice"><strong>Live status:</strong> Real events appear after admin review and approval.</p>
+      <p class="sample-notice"><strong>Demo events:</strong> examples are fictional. Open the admin page to restore or remove them. They are never real listings.</p>
+      <p><a href="genova-live.html">See reviewed live events</a></p>
     </section>
 
     <section class="calendar-controls" aria-label="Calendar controls">
@@ -42,7 +43,7 @@
     </section>
 
     <section aria-labelledby="calendar-month">
-      <p id="calendar-status" class="calendar-status" role="status" aria-live="polite">Loading sample events…</p>
+      <p id="calendar-status" class="calendar-status" role="status" aria-live="polite">Loading demo calendar…</p>
       <div class="calendar-weekdays" aria-hidden="true">
         <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
       </div>
@@ -55,7 +56,7 @@
     </aside>
   </main>
 
-  <footer>Porto Aperto | Genova · Sample preview · No account required</footer>
+  <footer>Porto Aperto | Genova · Fictional demo calendar · No account required</footer>
   <script src="sample-preview.js"></script>
   <script>
     window.GenovaSamplePreview.startSamplePreview(document);
