@@ -379,3 +379,79 @@ def test_detail_page_metadata_is_used_when_jsonld_is_absent():
     assert event["category"] == "music"
     assert event["category_confidence"] == 0.95
     assert "page_metadata" in event["evidence_note"]
+
+
+@pytest.mark.parametrize(('date', 'expected_times'), [
+    ('Venerdì 9 ottobre alle ore 18.00', ['18:00']),
+    ('Giovedì 11 settembre, ore 20.00 e ore 20.30', ['20:00', '20:30']),
+])
+def test_diagnostics_preserve_yearless_dates_without_inventing_timestamps(date, expected_times):
+    from scripts.collect_genova_luzzati import parse_detail
+    diagnostic = {}
+    events = parse_detail(f'<main><h1>Prova</h1><p>{date}</p></main>', _detail_index_event(), 51, diagnostics=diagnostic)
+    assert all(event['start_time'] is None for event in events)
+    assert diagnostic['explicit_years'] == []
+    assert diagnostic['local_times'] == expected_times
+    assert diagnostic['precision'] == 'unknown_year'
+    assert 'year_missing' in diagnostic['unresolved_reasons']
+    assert diagnostic['date_time_methods'] == ['visible_event_text']
+    assert all('description' not in event for event in events)
+
+
+def test_nested_div_does_not_end_event_scope_before_category_text():
+    from scripts.collect_genova_luzzati import parse_detail
+    html = '<div class="product"><div><h1>Prova</h1></div><p>Presentazione del libro.</p></div><footer>Comunità, socialità, giochi.</footer>'
+    diagnostic = {}
+    event = parse_detail(html, _detail_index_event(), 51, diagnostics=diagnostic)[0]
+    assert event['category'] == 'talks-workshops'
+    assert diagnostic['categories'] == ['talks-workshops']
+    assert diagnostic['category_methods'] == ['title_or_description_keywords']
+
+
+def test_diagnostics_distinguish_cap_skips_missing_fields_and_missing_title():
+    body = b'<li class="product"><a href="/prodotto/one/"><h2>One</h2></a></li><li class="product"><a href="/prodotto/two/"><h2>Two</h2></a></li><a href="/prodotto/untitled/"></a>'
+    def get(url):
+        if url.endswith('/robots.txt'):
+            return FakeResponse(200, url, b'User-agent: *\nAllow: /\n')
+        return FakeResponse(200, url, body if url == INDEX_URL else b'<main><h1>One</h1></main>')
+    result = collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=1)
+    rows = result['diagnostics']['candidates']
+    assert len(rows) == 3
+    assert rows[0]['coverage'] == 'detail_fetched'
+    assert rows[0]['http_status'] == 200
+    assert 'no_date_on_page' in rows[0]['fields']['unresolved_reasons']
+    assert rows[1]['unresolved_reasons'] == ['not_fetched_cap']
+    assert rows[2]['unresolved_reasons'] == ['title_missing']
+
+
+def test_failed_detail_keeps_diagnostics_and_stops_remaining_requests():
+    body = b'<li class="product"><a href="/prodotto/one/"><h2>One</h2></a></li><li class="product"><a href="/prodotto/two/"><h2>Two</h2></a></li>'
+    calls = []
+    def get(url):
+        calls.append(url)
+        if url.endswith('/robots.txt'):
+            return FakeResponse(200, url, b'User-agent: *\nAllow: /\n')
+        return FakeResponse(200, url, body) if url == INDEX_URL else FakeResponse(429, url)
+    with pytest.raises(ProbeSkipped) as caught:
+        collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=2)
+    assert len(calls) == 3
+    report = caught.value.report
+    assert report['status'] == 'skipped'
+    assert report['diagnostics']['candidates'][0]['unresolved_reasons'] == ['rate_limited']
+    assert report['diagnostics']['candidates'][1]['unresolved_reasons'] == ['stopped_after_failure']
+    from scripts.persist_genova_luzzati_report import validate_report
+    with pytest.raises(ValueError, match='successful'):
+        validate_report(report)
+
+
+def test_diagnostics_show_complete_rome_time_and_ambiguous_dates():
+    from scripts.collect_genova_luzzati import parse_detail
+    diagnostic = {}
+    parse_detail((FIXTURE.parent / 'luzzati-detail-text.html').read_text(), _detail_index_event(), 51, diagnostics=diagnostic)
+    assert diagnostic['normalized_starts'][0] == '2026-10-06T18:00:00+02:00'
+    assert diagnostic['explicit_years'] == [2026]
+    assert diagnostic['precision'] == 'time'
+    assert diagnostic['locations'] == ['Giardini Luzzati - Spazio Comune']
+    parse_detail((FIXTURE.parent / 'luzzati-detail-ambiguous.html').read_text(), _detail_index_event(), 51, diagnostics=diagnostic)
+    assert diagnostic['normalized_starts'] == []
+    assert 'ambiguous_dates' in diagnostic['unresolved_reasons']

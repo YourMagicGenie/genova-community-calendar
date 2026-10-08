@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 test("manual Luzzati workflow verifies hosted persistence state before source contact", async () => {
   const workflow = await readFile(new URL("../.github/workflows/genova-luzzati-pilot.yml", import.meta.url), "utf8");
   const hostedGate = workflow.indexOf("Require the hosted Issue 51 persistence boundary");
-  const collector = workflow.indexOf("Collect one bounded index report");
+  const collector = workflow.indexOf("python scripts/collect_genova_luzzati.py --source");
   assert.ok(hostedGate >= 0 && collector > hostedGate);
   assert.match(workflow, /to_regclass\('public\.genova_event_facts'\)/);
   assert.match(workflow, /to_regclass\('public\.genova_source_scans'\)/);
@@ -14,4 +14,14 @@ test("manual Luzzati workflow verifies hosted persistence state before source co
   assert.match(workflow, /luzzati-source\.json/);
   assert.match(workflow, /--source "\$RUNNER_TEMP\/luzzati-source\.json"/);
   assert.doesNotMatch(workflow, /grep -q "20261006124729"/);
+});
+
+
+test("manual pilot preserves bounded facts-only diagnostics even on collection failure", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/genova-luzzati-pilot.yml", import.meta.url), "utf8");
+  assert.match(workflow, /name: Preserve the transient facts-only diagnostic report\n        if: \$\{\{ always\(\) \}\}/);
+  assert.match(workflow, /retention-days: 7/);
+  assert.match(workflow, /luzzati-report\.json/);
+  assert.match(workflow, /HAVING count\(\*\) FILTER \(WHERE start_time IS NULL\) > 0/);
+  assert.doesNotMatch(workflow, /schedule:|cron:/);
 });

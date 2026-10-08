@@ -59,6 +59,9 @@ DETAIL_DATE_RE = re.compile(
     r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(20\d{2})\b",
     re.I,
 )
+PARTIAL_DATE_RE = re.compile(
+    r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+(20\d{2}))?\b", re.I,
+)
 CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", re.I)
 CATEGORY_KEYWORDS = {
     "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
@@ -357,6 +360,7 @@ class _DetailParser(HTMLParser):
         self.in_h1 = False
         self.h1_data = []
         self.scope_tags = []
+        self.element_stack = []
         self.scoped_text = []
 
     def handle_starttag(self, tag, attrs):
@@ -374,9 +378,11 @@ class _DetailParser(HTMLParser):
             key = (attrs.get("property") or attrs.get("name") or attrs.get("itemprop") or "").casefold()
             if key and attrs.get("content"):
                 self.meta.setdefault(key, []).append(attrs["content"].strip())
+        if tag not in _ProductIndexParser.VOID_TAGS:
+            self.element_stack.append(tag)
         classes = set(attrs.get("class", "").casefold().split())
         if tag in {"main", "article"} or classes.intersection({"product", "summary", "entry-summary", "product-summary"}):
-            self.scope_tags.append(tag)
+            self.scope_tags.append(len(self.element_stack))
         if tag in {"address", "article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"}:
             self.text.append("\n")
             if self.scope_tags:
@@ -400,9 +406,10 @@ class _DetailParser(HTMLParser):
             self.text.append("\n")
             if self.scope_tags:
                 self.scoped_text.append("\n")
-        for index in range(len(self.scope_tags) - 1, -1, -1):
-            if self.scope_tags[index] == tag:
-                del self.scope_tags[index:]
+        for index in range(len(self.element_stack) - 1, -1, -1):
+            if self.element_stack[index] == tag:
+                del self.element_stack[index:]
+                self.scope_tags = [depth for depth in self.scope_tags if depth <= len(self.element_stack)]
                 break
 
     def handle_data(self, data):
@@ -496,7 +503,7 @@ def _metadata_time(value):
     return parsed.isoformat()
 
 
-def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
+def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict | None = None) -> list[dict]:
     parser = _DetailParser()
     parser.feed(html)
     scoped_text = " ".join(parser.scoped_text)
@@ -587,6 +594,8 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
         if start in seen_starts:
             continue
         seen_starts.add(start)
+        location_method = source if location else "page_metadata" if meta_location and not venue_match else "visible_event_text"
+        category_method = source if category else category_evidence
         location = location or venue
         category = category or explicit_category
         confidence = confidence or explicit_confidence
@@ -594,9 +603,9 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
         if source:
             evidence.append(f"date_time={source}")
         if location:
-            evidence.append("location=event_metadata_or_visible_text")
+            evidence.append(f"location={location_method}")
         if category:
-            evidence.append(f"category={category_evidence or 'event_metadata'}")
+            evidence.append(f"category={category_method or 'event_metadata'}")
         output.append({
             "feed_id": feed_id, "title": title, "start_time": start, "end_time": end,
             "location": location, "publisher": index_event["publisher"],
@@ -605,6 +614,47 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
             "category": category, "category_confidence": confidence,
             "review_status": "needs_review",
             "evidence_note": "; ".join(evidence) or "detail_page_checked; facts not explicit",
+        })
+    if diagnostics is not None:
+        date_matches = list(PARTIAL_DATE_RE.finditer(text))
+        date_values = list(dict.fromkeys(match.group(0) for match in date_matches))
+        explicit_years = sorted({int(match.group(3)) for match in date_matches if match.group(3)})
+        local_times = list(dict.fromkeys(f"{int(h):02d}:{m}" for h, m in TIME_RE.findall(text)))
+        starts = [event["start_time"] for event in output if event["start_time"]]
+        methods = sorted({source for *_, source in facts if source})
+        if starts:
+            normalized = [datetime.fromisoformat(start) for start in starts]
+            explicit_years = sorted({start.year for start in normalized})
+            local_times = list(dict.fromkeys(start.strftime("%H:%M") for start in normalized))
+        reasons = []
+        if not starts:
+            if not date_matches:
+                reasons.append("no_date_on_page")
+            elif not explicit_years:
+                reasons.append("year_missing")
+            elif len(date_values) > 1:
+                reasons.append("ambiguous_dates")
+            else:
+                reasons.append("date_time_unresolved")
+            if not local_times:
+                reasons.append("time_missing")
+        locations = list(dict.fromkeys(event["location"] for event in output if event["location"]))
+        categories = list(dict.fromkeys(event["category"] for event in output if event["category"]))
+        if not locations:
+            reasons.append("location_missing")
+        if not categories:
+            reasons.append("category_unsupported")
+        diagnostics.update({
+            "date_text": date_values, "explicit_years": explicit_years,
+            "local_times": local_times, "normalized_starts": starts,
+            "timezone": "Europe/Rome",
+            "precision": "time" if starts else "date" if explicit_years and date_matches else "unknown_year" if date_matches else "unknown",
+            "date_time_methods": methods or (["visible_event_text"] if date_matches or local_times else []),
+            "text_scope": "event_content" if scoped_has_date and scoped_has_time else "visible_page_fallback",
+            "locations": locations, "categories": categories,
+            "location_methods": sorted({event["evidence_note"].split("location=", 1)[1].split(";", 1)[0] for event in output if "location=" in event["evidence_note"]}),
+            "category_methods": sorted({event["evidence_note"].split("category=", 1)[1].split(";", 1)[0] for event in output if "category=" in event["evidence_note"]}),
+            "unresolved_reasons": reasons,
         })
     return output
 
@@ -640,46 +690,82 @@ def collect(source: dict, get=_http_get, sleeper=time.sleep, detail_page_limit=D
         raise ProbeSkipped("event index exceeded the response-size limit")
     diagnostics = {}
     events = parse_index(body.decode("utf-8", errors="replace"), int(source["id"]), source.get("name") or SOURCE_NAME, diagnostics=diagnostics)
+    index_parser = _ProductIndexParser(INDEX_URL)
+    index_parser.feed(body.decode("utf-8", errors="replace"))
+    records, _ = index_parser.records()
+    candidate_diagnostics = [{
+        "title": record["title"], "url": record["url"],
+        "coverage": "index_only", "http_status": None, "redirect_host": None,
+        "fields": None,
+        "unresolved_reasons": ["not_fetched_cap"] if record["title"] else ["title_missing"],
+    } for record in records]
+    diagnostics["candidates"] = candidate_diagnostics
+    by_url = {row["url"]: row for row in candidate_diagnostics}
     candidates = list({event["normalized_url"]: event for event in events}.values())[:detail_page_limit]
     detail_pages_checked = 0
-    for index_event in candidates:
-        target = index_event["url"]
-        parsed = urlsplit(target)
-        if parsed.scheme.casefold() != "https" or (parsed.hostname or "").casefold() != host or not parsed.path.startswith(PRODUCT_PATH_PREFIX):
-            continue
-        if robots is not None and not robots.can_fetch(USER_AGENT, target):
-            raise ProbeSkipped("robots.txt disallows a candidate event detail path")
-        if crawl_delay:
-            sleeper(crawl_delay)
-        detail = tracked_get(target)
-        if detail.status == 429:
-            raise ProbeSkipped("event detail page rate-limited the collector")
-        if detail.status != 200:
-            raise ProbeSkipped(f"event detail page returned HTTP {detail.status}")
-        if (urlsplit(detail.url).hostname or "").casefold() != host:
-            raise ProbeSkipped("event detail page redirected to another host")
-        detail_body = detail.read()
-        if len(detail_body) > MAX_RESPONSE_BYTES:
-            raise ProbeSkipped("event detail page exceeded the response-size limit")
-        detail_pages_checked += 1
-        enriched = parse_detail(detail_body.decode("utf-8", errors="replace"), index_event, int(source["id"]))
-        old = [event for event in events if event["normalized_url"] == index_event["normalized_url"]]
-        if any(event["start_time"] for event in enriched):
+    try:
+        for index_event in candidates:
+            target = index_event["url"]
+            candidate = by_url[index_event["normalized_url"]]
+            candidate.update(coverage="fetch_failed", unresolved_reasons=["request_failed"])
+            parsed = urlsplit(target)
+            if parsed.scheme.casefold() != "https" or (parsed.hostname or "").casefold() != host or not parsed.path.startswith(PRODUCT_PATH_PREFIX):
+                continue
+            if robots is not None and not robots.can_fetch(USER_AGENT, target):
+                candidate.update(coverage="blocked", unresolved_reasons=["blocked_robots"])
+                raise ProbeSkipped("robots.txt disallows a candidate event detail path")
+            if crawl_delay:
+                sleeper(crawl_delay)
+            detail = tracked_get(target)
+            candidate.update(http_status=detail.status, redirect_host=urlsplit(detail.url).hostname)
+            candidate.update(coverage="fetch_failed", unresolved_reasons=["http_error"])
+            if detail.status == 429:
+                candidate["unresolved_reasons"] = ["rate_limited"]
+                raise ProbeSkipped("event detail page rate-limited the collector")
+            if detail.status != 200:
+                raise ProbeSkipped(f"event detail page returned HTTP {detail.status}")
+            if (urlsplit(detail.url).hostname or "").casefold() != host:
+                candidate["unresolved_reasons"] = ["off_host_redirect"]
+                raise ProbeSkipped("event detail page redirected to another host")
+            detail_body = detail.read()
+            if len(detail_body) > MAX_RESPONSE_BYTES:
+                candidate["unresolved_reasons"] = ["response_too_large"]
+                raise ProbeSkipped("event detail page exceeded the response-size limit")
+            detail_pages_checked += 1
+            fields = {}
+            try:
+                enriched = parse_detail(detail_body.decode("utf-8", errors="replace"), index_event, int(source["id"]), diagnostics=fields)
+            except (ValueError, TypeError, RecursionError) as error:
+                candidate.update(coverage="parse_failed", unresolved_reasons=["parse_error"])
+                raise ProbeSkipped("event detail page could not be parsed") from error
+            candidate.update(coverage="detail_fetched", fields=fields, unresolved_reasons=fields["unresolved_reasons"])
             old = [event for event in events if event["normalized_url"] == index_event["normalized_url"]]
-            for event in enriched:
-                if not event["location"]:
-                    event["location"] = next((row["location"] for row in old if row.get("location")), None)
-                if not event["category"]:
-                    event["category"] = next((row["category"] for row in old if row.get("category")), None)
-                    event["category_confidence"] = next((row["category_confidence"] for row in old if row.get("category_confidence") is not None), None)
-            events = [event for event in events if event["normalized_url"] != index_event["normalized_url"]]
-            events.extend(enriched)
-        else:
-            for event in old:
-                for key in ("location", "category", "category_confidence", "evidence_note"):
-                    value = next((row.get(key) for row in enriched if row.get(key)), None)
-                    if value:
-                        event[key] = value
+            if any(event["start_time"] for event in enriched):
+                old = [event for event in events if event["normalized_url"] == index_event["normalized_url"]]
+                for event in enriched:
+                    if not event["location"]:
+                        event["location"] = next((row["location"] for row in old if row.get("location")), None)
+                    if not event["category"]:
+                        event["category"] = next((row["category"] for row in old if row.get("category")), None)
+                        event["category_confidence"] = next((row["category_confidence"] for row in old if row.get("category_confidence") is not None), None)
+                events = [event for event in events if event["normalized_url"] != index_event["normalized_url"]]
+                events.extend(enriched)
+            else:
+                for event in old:
+                    for key in ("location", "category", "category_confidence", "evidence_note"):
+                        value = next((row.get(key) for row in enriched if row.get(key)), None)
+                        if value:
+                            event[key] = value
+    except ProbeSkipped as error:
+        for remaining in candidate_diagnostics:
+            if remaining["unresolved_reasons"] == ["not_fetched_cap"] and remaining["url"] in {event["normalized_url"] for event in candidates}:
+                remaining["unresolved_reasons"] = ["stopped_after_failure"]
+        error.report = {
+            "status": "skipped", "reason": str(error),
+            "diagnostics": diagnostics,
+            "access": {"request_count": request_count, "detail_pages_checked": detail_pages_checked, "detail_page_limit": detail_page_limit},
+        }
+        raise
     diagnostics["detail_pages_checked"] = detail_pages_checked
     return {
         "status": "ok",
@@ -713,6 +799,9 @@ def main() -> int:
     try:
         report = collect(source, detail_page_limit=args.detail_page_limit)
     except ProbeSkipped as error:
+        report = getattr(error, "report", {"status": "skipped", "reason": str(error)})
+        if args.output:
+            Path(args.output).write_text(json.dumps(report, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps({"status": "skipped", "reason": str(error)}, sort_keys=True))
         return 2
     rendered = json.dumps(report, ensure_ascii=False, sort_keys=True)
