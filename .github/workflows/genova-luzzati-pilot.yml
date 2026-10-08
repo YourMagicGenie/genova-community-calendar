@@ -2,6 +2,12 @@ name: Run manual Giardini Luzzati pilot
 
 on:
   workflow_dispatch:
+    inputs:
+      detail_page_limit:
+        description: 'Maximum same-host event pages to check after the index (0-12)'
+        required: true
+        default: 2
+        type: number
 
 permissions:
   contents: read
