@@ -63,7 +63,7 @@ CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", 
 CATEGORY_KEYWORDS = {
     "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
     "theatre-performance": ("teatro", "spettacolo", "performance", "danza", "cabaret", "commedia"),
-    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "film"),
+    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "cinematografico", "cinematografica", "proiezione", "film"),
     "sports": ("sport", "partita", "torneo", "fitness", "allenamento", "gara"),
     "food-drink": ("degustazione", "cucina", "vino", "birra", "aperitivo", "cena", "street food"),
     "festivals-markets": ("festival", "mercato", "mercatino", "fiera", "sagra"),
