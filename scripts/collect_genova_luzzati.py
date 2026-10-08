@@ -4,7 +4,8 @@
 The collector fails closed unless the exact index URL is present as an active
 Genova feed in Supabase. It checks robots.txt, makes at most one request to the
 verified index, and emits only reviewable calendar facts plus access metadata.
-It never fetches event detail pages and never writes to Supabase.
+It fetches only a configurable number of sequential same-host event detail
+pages after the index, and never writes to Supabase or retains page content.
 """
 from __future__ import annotations
 
@@ -39,6 +40,25 @@ PUBLISHER_URL = "https://www.spazio-comune.org/"
 CITY = "genova"
 TIME_ZONE = ZoneInfo("Europe/Rome")
 PRODUCT_PATH_PREFIX = "/prodotto/"
+MAX_DETAIL_PAGES = 12
+DEFAULT_DETAIL_PAGE_LIMIT = 2
+CATEGORY_ALIASES = {
+    "music": "music", "musica": "music", "concerti": "music",
+    "theatre": "theatre-performance", "theater": "theatre-performance",
+    "teatro": "theatre-performance", "performance": "theatre-performance",
+    "art": "art-exhibitions", "arte": "art-exhibitions", "mostre": "art-exhibitions",
+    "sport": "sports", "sports": "sports", "food": "food-drink", "food & drink": "food-drink",
+    "festival": "festivals-markets", "festivals": "festivals-markets", "mercati": "festivals-markets",
+    "talks": "talks-workshops", "workshops": "talks-workshops", "laboratori": "talks-workshops",
+    "family": "family", "famiglie": "family", "bambini": "family",
+    "outdoors": "outdoors-tours", "tours": "outdoors-tours",
+    "community": "community-social", "comunità": "community-social",
+}
+DETAIL_DATE_RE = re.compile(
+    r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(20\d{2})\b",
+    re.I,
+)
+CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", re.I)
 MONTHS = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12,
@@ -304,17 +324,205 @@ def parse_index(
                 "category": None,
                 "category_confidence": None,
                 "review_status": "needs_review",
+                "evidence_note": "date_time=index_card" if start_time else "index_card_checked; date_time=unknown",
             })
     if diagnostics is not None:
         diagnostics.update(counts)
     return events
 
 
-def collect(source: dict, get=_http_get, sleeper=time.sleep) -> dict:
+class _DetailParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.meta = {}
+        self.jsonld = []
+        self.text = []
+        self.h1 = []
+        self.skip = 0
+        self.script_type = ""
+        self.script_data = []
+        self.in_h1 = False
+        self.h1_data = []
+        self.scope_tags = []
+        self.scoped_text = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = {k.casefold(): v or "" for k, v in attrs}
+        tag = tag.casefold()
+        if tag in {"script", "style", "noscript", "svg"}:
+            self.skip += 1
+            if tag == "script":
+                self.script_type = attrs.get("type", "").casefold()
+                self.script_data = []
+            return
+        if self.skip:
+            return
+        if tag == "meta":
+            key = (attrs.get("property") or attrs.get("name") or attrs.get("itemprop") or "").casefold()
+            if key and attrs.get("content"):
+                self.meta.setdefault(key, []).append(attrs["content"].strip())
+        classes = set(attrs.get("class", "").casefold().split())
+        if tag in {"main", "article"} or classes.intersection({"product", "summary", "entry-summary", "product-summary"}):
+            self.scope_tags.append(tag)
+        if tag == "h1":
+            self.in_h1, self.h1_data = True, []
+
+    def handle_endtag(self, tag):
+        tag = tag.casefold()
+        if tag in {"script", "style", "noscript", "svg"} and self.skip:
+            self.skip -= 1
+            if tag == "script" and self.script_type == "application/ld+json":
+                self.jsonld.append("".join(self.script_data))
+            self.script_type, self.script_data = "", []
+        elif tag == "h1" and self.in_h1:
+            value = " ".join(" ".join(self.h1_data).split())
+            if value:
+                self.h1.append(value)
+            self.in_h1, self.h1_data = False, []
+        for index in range(len(self.scope_tags) - 1, -1, -1):
+            if self.scope_tags[index] == tag:
+                del self.scope_tags[index:]
+                break
+
+    def handle_data(self, data):
+        if self.skip:
+            if self.script_type == "application/ld+json":
+                self.script_data.append(data)
+            return
+        clean = " ".join(data.split())
+        if clean:
+            self.text.append(clean)
+            if self.scope_tags:
+                self.scoped_text.append(clean)
+            if self.in_h1:
+                self.h1_data.append(clean)
+
+
+def _jsonld_events(value):
+    if isinstance(value, list):
+        for item in value:
+            yield from _jsonld_events(item)
+    elif isinstance(value, dict):
+        yield value
+        if "@graph" in value:
+            yield from _jsonld_events(value["@graph"])
+
+
+def _category(value):
+    if isinstance(value, list):
+        for item in value:
+            result = _category(item)
+            if result[0]:
+                return result
+        return None, None
+    if isinstance(value, dict):
+        return _category(value.get("name") or value.get("@value"))
+    if isinstance(value, str):
+        key = CATEGORY_ALIASES.get(value.strip().casefold())
+        return (key, 0.95) if key else (None, None)
+    return None, None
+
+
+def _metadata_time(value):
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if "T" not in raw and " " not in raw:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=TIME_ZONE)
+    else:
+        parsed = parsed.astimezone(TIME_ZONE)
+    return parsed.isoformat()
+
+
+def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
+    parser = _DetailParser()
+    parser.feed(html)
+    text = " ".join(parser.scoped_text or parser.text)
+    facts = []
+    for raw in parser.jsonld:
+        try:
+            data = json.loads(raw)
+        except (ValueError, TypeError):
+            continue
+        for node in _jsonld_events(data):
+            start = _metadata_time(node.get("startDate") or node.get("start_time"))
+            if not start:
+                continue
+            end = _metadata_time(node.get("endDate") or node.get("end_time"))
+            location = node.get("location")
+            if isinstance(location, dict):
+                location = location.get("name")
+            if isinstance(location, list):
+                location = location[0] if len(location) == 1 and isinstance(location[0], str) else None
+            category, confidence = _category(node.get("category") or node.get("keywords"))
+            facts.append((start, end, location if isinstance(location, str) else None, category, confidence, "structured_event_metadata"))
+    if not facts:
+        dates = []
+        for match in DETAIL_DATE_RE.finditer(text):
+            try:
+                value = (int(match.group(3)), MONTHS[match.group(2).casefold()], int(match.group(1)))
+                datetime(*value)
+                if value not in dates:
+                    dates.append(value)
+            except ValueError:
+                continue
+        times = list(dict.fromkeys((int(h), int(m)) for h, m in TIME_RE.findall(text)))
+        if len(dates) == 1 and times:
+            year, month, day = dates[0]
+            facts = [
+                (datetime(year, month, day, h, m, tzinfo=TIME_ZONE).isoformat(), None, None, None, None, "visible_event_text")
+                for h, m in times
+            ]
+    venue_match = VENUE_RE.search(text)
+    venue = " ".join(venue_match.group(0).split()) if venue_match else None
+    category_match = CATEGORY_LINE_RE.search(text)
+    explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (None, None)
+    if explicit_category:
+        explicit_confidence = 0.85
+    if not facts:
+        facts = [(None, None, None, None, None, None)]
+    output = []
+    title = next(iter(parser.h1), None) or index_event["title"]
+    seen_starts = set()
+    for start, end, location, category, confidence, source in facts:
+        if start in seen_starts:
+            continue
+        seen_starts.add(start)
+        location = location or venue
+        category = category or explicit_category
+        confidence = confidence or explicit_confidence
+        evidence = []
+        if source:
+            evidence.append(f"date_time={source}")
+        if location:
+            evidence.append("location=event_metadata_or_visible_text")
+        if category:
+            evidence.append("category=explicit_taxonomy_label")
+        output.append({
+            "feed_id": feed_id, "title": title, "start_time": start, "end_time": end,
+            "location": location, "publisher": index_event["publisher"],
+            "url": index_event["url"], "normalized_url": index_event["normalized_url"],
+            "source_uid": _source_uid(feed_id, index_event["normalized_url"], start),
+            "category": category, "category_confidence": confidence,
+            "review_status": "needs_review",
+            "evidence_note": "; ".join(evidence) or "detail_page_checked; facts not explicit",
+        })
+    return output
+
+
+def collect(source: dict, get=_http_get, sleeper=time.sleep, detail_page_limit=DEFAULT_DETAIL_PAGE_LIMIT) -> dict:
     source = validate_active_source(source, INDEX_URL)
+    if isinstance(detail_page_limit, bool) or not isinstance(detail_page_limit, int) or not 0 <= detail_page_limit <= MAX_DETAIL_PAGES:
+        raise ProbeSkipped(f"detail-page limit must be an integer between 0 and {MAX_DETAIL_PAGES}")
     request_count = 0
 
-    def tracked_get(url: str):
+    def tracked_get(url):
         nonlocal request_count
         request_count += 1
         return get(url)
@@ -326,43 +534,72 @@ def collect(source: dict, get=_http_get, sleeper=time.sleep) -> dict:
         raise ProbeSkipped("published crawl delay exceeds the collector wait limit")
     if crawl_delay:
         sleeper(crawl_delay)
-
     response = tracked_get(INDEX_URL)
+    if response.status == 429:
+        raise ProbeSkipped("event index rate-limited the collector")
     if response.status != 200:
         raise ProbeSkipped(f"event index returned HTTP {response.status}")
-    if urlsplit(response.url).hostname != urlsplit(INDEX_URL).hostname:
+    host = (urlsplit(INDEX_URL).hostname or "").casefold()
+    if (urlsplit(response.url).hostname or "").casefold() != host:
         raise ProbeSkipped("event index redirected to another host")
     body = response.read()
     if len(body) > MAX_RESPONSE_BYTES:
         raise ProbeSkipped("event index exceeded the response-size limit")
     diagnostics = {}
-    events = parse_index(
-        body.decode("utf-8", errors="replace"),
-        int(source["id"]),
-        source.get("name") or SOURCE_NAME,
-        diagnostics=diagnostics,
-    )
+    events = parse_index(body.decode("utf-8", errors="replace"), int(source["id"]), source.get("name") or SOURCE_NAME, diagnostics=diagnostics)
+    candidates = list({event["normalized_url"]: event for event in events}.values())[:detail_page_limit]
+    detail_pages_checked = 0
+    for index_event in candidates:
+        target = index_event["url"]
+        parsed = urlsplit(target)
+        if parsed.scheme.casefold() != "https" or (parsed.hostname or "").casefold() != host or not parsed.path.startswith(PRODUCT_PATH_PREFIX):
+            continue
+        if robots is not None and not robots.can_fetch(USER_AGENT, target):
+            raise ProbeSkipped("robots.txt disallows a candidate event detail path")
+        if crawl_delay:
+            sleeper(crawl_delay)
+        detail = tracked_get(target)
+        if detail.status == 429:
+            raise ProbeSkipped("event detail page rate-limited the collector")
+        if detail.status != 200:
+            raise ProbeSkipped(f"event detail page returned HTTP {detail.status}")
+        if (urlsplit(detail.url).hostname or "").casefold() != host:
+            raise ProbeSkipped("event detail page redirected to another host")
+        detail_body = detail.read()
+        if len(detail_body) > MAX_RESPONSE_BYTES:
+            raise ProbeSkipped("event detail page exceeded the response-size limit")
+        detail_pages_checked += 1
+        enriched = parse_detail(detail_body.decode("utf-8", errors="replace"), index_event, int(source["id"]))
+        old = [event for event in events if event["normalized_url"] == index_event["normalized_url"]]
+        if any(event["start_time"] for event in enriched):
+            old = [event for event in events if event["normalized_url"] == index_event["normalized_url"]]
+            for event in enriched:
+                if not event["location"]:
+                    event["location"] = next((row["location"] for row in old if row.get("location")), None)
+                if not event["category"]:
+                    event["category"] = next((row["category"] for row in old if row.get("category")), None)
+                    event["category_confidence"] = next((row["category_confidence"] for row in old if row.get("category_confidence") is not None), None)
+            events = [event for event in events if event["normalized_url"] != index_event["normalized_url"]]
+            events.extend(enriched)
+        else:
+            for event in old:
+                for key in ("location", "category", "category_confidence", "evidence_note"):
+                    value = next((row.get(key) for row in enriched if row.get(key)), None)
+                    if value:
+                        event[key] = value
+    diagnostics["detail_pages_checked"] = detail_pages_checked
     return {
         "status": "ok",
-        "source": {
-            "id": int(source["id"]),
-            "name": source.get("name") or SOURCE_NAME,
-            "url": INDEX_URL,
-            "publisher_url": source.get("publisher_url") or PUBLISHER_URL,
-        },
+        "source": {"id": int(source["id"]), "name": source.get("name") or SOURCE_NAME, "url": INDEX_URL, "publisher_url": source.get("publisher_url") or PUBLISHER_URL},
         "access": {
-            "robots_http_status": robots_status,
-            "robots_decision": "allowed" if robots is not None else "missing_no_rules",
-            "page_http_status": response.status,
-            "request_count": request_count,
-            "crawl_delay_seconds": crawl_delay,
+            "robots_http_status": robots_status, "robots_decision": "allowed" if robots is not None else "missing_no_rules",
+            "page_http_status": response.status, "request_count": request_count,
+            "crawl_delay_seconds": crawl_delay, "detail_page_limit": detail_page_limit,
+            "detail_pages_checked": detail_pages_checked,
         },
-        "diagnostics": diagnostics,
-        "events": events,
-        "events_found": len(events),
+        "diagnostics": diagnostics, "events": events, "events_found": len(events),
         "events_needing_review": sum(event["review_status"] == "needs_review" for event in events),
     }
-
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -372,6 +609,8 @@ def main() -> int:
         help="trusted JSON source snapshot produced by the guarded pilot workflow",
     )
     parser.add_argument("--output", help="write the facts-only report to this JSON file")
+    parser.add_argument("--detail-page-limit", type=int, default=DEFAULT_DETAIL_PAGE_LIMIT,
+                        help=f"sequential detail pages to request (0-{MAX_DETAIL_PAGES})")
     args = parser.parse_args()
     try:
         source = json.loads(Path(args.source).read_text(encoding="utf-8"))
@@ -379,14 +618,21 @@ def main() -> int:
         print(json.dumps({"status": "skipped", "reason": "approved source snapshot could not be read"}, sort_keys=True))
         return 2
     try:
-        report = collect(source)
+        report = collect(source, detail_page_limit=args.detail_page_limit)
     except ProbeSkipped as error:
         print(json.dumps({"status": "skipped", "reason": str(error)}, sort_keys=True))
         return 2
     rendered = json.dumps(report, ensure_ascii=False, sort_keys=True)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-    print(rendered)
+    print(json.dumps({
+        "status": "ok",
+        "events_found": report["events_found"],
+        "events_needing_review": report["events_needing_review"],
+        "request_count": report["access"]["request_count"],
+        "detail_page_limit": report["access"]["detail_page_limit"],
+        "detail_pages_checked": report["access"]["detail_pages_checked"],
+    }, sort_keys=True))
     return 0
 
 
