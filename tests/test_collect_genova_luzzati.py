@@ -77,7 +77,7 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
             return FakeResponse(200, url, b"User-agent: *\nAllow: /categoria-prodotto/eventi/\n")
         return FakeResponse(200, url, body)
 
-    result = collect(active_source(), get=get, sleeper=lambda _: None)
+    result = collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=0)
 
     assert calls == ["https://www.spazio-comune.org/robots.txt", INDEX_URL]
     assert result["access"]["request_count"] == 2
@@ -87,7 +87,7 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
     assert result["diagnostics"]["records_with_titles"] == 3
     assert all(set(event) <= {
         "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-        "normalized_url", "source_uid", "category", "category_confidence", "review_status"
+        "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note"
     } for event in result["events"])
 
 
@@ -168,3 +168,101 @@ def test_index_parser_diagnostics_expose_candidates_missing_a_title():
         "records_with_dates": 1,
         "records_with_times": 1,
     }
+
+
+def _detail_index_event():
+    return {
+        "feed_id": 51,
+        "title": "Titolo dall'indice",
+        "start_time": None,
+        "end_time": None,
+        "location": None,
+        "publisher": "Giardini Luzzati",
+        "url": "https://www.spazio-comune.org/prodotto/prova/",
+        "normalized_url": "https://www.spazio-comune.org/prodotto/prova/",
+    }
+
+
+def test_detail_text_extracts_showtimes_venue_and_explicit_category():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = (FIXTURE.parent / "luzzati-detail-text.html").read_text(encoding="utf-8")
+    events = parse_detail(html, _detail_index_event(), 51)
+    assert [event["start_time"] for event in events] == [
+        "2026-10-06T18:00:00+02:00", "2026-10-06T20:30:00+02:00"
+    ]
+    assert all(event["location"] == "Giardini Luzzati - Spazio Comune" for event in events)
+    assert all(event["category"] == "music" and event["category_confidence"] == 0.85 for event in events)
+    assert all(event["review_status"] == "needs_review" for event in events)
+
+
+def test_detail_structured_metadata_is_timezone_normalized():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = (FIXTURE.parent / "luzzati-detail-structured.html").read_text(encoding="utf-8")
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["start_time"] == "2026-10-12T20:30:00+02:00"
+    assert event["end_time"] == "2026-10-12T22:00:00+02:00"
+    assert event["location"] == "Giardini Luzzati"
+    assert event["category"] == "theatre-performance"
+    assert event["category_confidence"] == 0.95
+    assert "structured_event_metadata" in event["evidence_note"]
+
+
+@pytest.mark.parametrize("fixture", ["luzzati-detail-ambiguous.html", "luzzati-detail-missing.html"])
+def test_detail_ambiguous_or_missing_facts_stay_null(fixture):
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = (FIXTURE.parent / fixture).read_text(encoding="utf-8")
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["start_time"] is None
+    assert event["end_time"] is None
+    assert event["location"] is None
+    assert event["category"] is None
+    assert event["review_status"] == "needs_review"
+
+
+def test_collection_sequentially_checks_only_the_requested_detail_cap():
+    body = (
+        '<ul><li class="product"><a href="/prodotto/one/"><h2>One</h2></a></li>'
+        '<li class="product"><a href="/prodotto/two/"><h2>Two</h2></a></li>'
+        '<li class="product"><a href="/prodotto/three/"><h2>Three</h2></a></li></ul>'
+    ).encode()
+    detail = (FIXTURE.parent / "luzzati-detail-text.html").read_bytes()
+    missing = (FIXTURE.parent / "luzzati-detail-missing.html").read_bytes()
+    calls = []
+
+    def get(url):
+        calls.append(url)
+        if url.endswith("/robots.txt"):
+            return FakeResponse(200, url, b"User-agent: *\nAllow: /\n")
+        if url == INDEX_URL:
+            return FakeResponse(200, url, body)
+        return FakeResponse(200, url, detail if url.endswith("/one/") else missing)
+
+    result = collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=2)
+    assert calls == [
+        "https://www.spazio-comune.org/robots.txt", INDEX_URL,
+        "https://www.spazio-comune.org/prodotto/one/",
+        "https://www.spazio-comune.org/prodotto/two/",
+    ]
+    assert result["access"]["request_count"] == 4
+    assert result["access"]["detail_pages_checked"] == 2
+    assert result["diagnostics"]["distinct_candidate_urls"] == 3
+    assert len([event for event in result["events"] if event["start_time"]]) == 2
+    assert all(event["review_status"] == "needs_review" for event in result["events"])
+
+
+def test_collection_stops_before_a_disallowed_detail_path():
+    body = '<li class="product"><a href="/prodotto/one/"><h2>One</h2></a></li>'.encode()
+    calls = []
+
+    def get(url):
+        calls.append(url)
+        if url.endswith("/robots.txt"):
+            return FakeResponse(200, url, b"User-agent: *\nDisallow: /prodotto/\n")
+        return FakeResponse(200, url, body)
+
+    with pytest.raises(ProbeSkipped, match="detail path"):
+        collect(active_source(), get=get, sleeper=lambda _: None, detail_page_limit=1)
+    assert calls == ["https://www.spazio-comune.org/robots.txt"]
