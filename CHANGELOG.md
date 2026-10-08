@@ -8,6 +8,8 @@ This is the short, human-readable record of changes to the Porto Aperto | Genova
 
 ## Unreleased
 
+- 2026-10-08 — Made the Giardini Luzzati index parser handle list, div, and article card layouts and report safe aggregate counts when parsing yields no events, without retaining publisher page content (issue #80).
+
 - 2026-10-07 — Fixed the manual Giardini Luzzati pilot to pass its already-verified active source snapshot from the guarded database check into the collector instead of re-reading `feeds` through the intentionally restricted public Data API (issue #51).
 
 - 2026-10-06 — Prepared a gated, private, admin-reviewed community event submission path and public form; activation awaits hosted migration, live calendar integration, and privacy copy (issue #68).

@@ -16,3 +16,8 @@ Persistence rules:
 The workflow prints only aggregate review counts and safe source-health fields. It does not upload raw HTML or the collector report as an artifact.
 
 On 2026-10-07 the first persistence-backed run stopped before contacting the publisher because the collector still attempted to re-read `feeds` through the intentionally restricted public Data API. The workflow now passes the already-verified source snapshot directly to the collector, preserving the fail-closed approval check without reopening public table grants.
+
+
+## Zero-event diagnostics
+
+The collector report includes only aggregate parser-stage counts: same-host product links, distinct candidate URLs, records formed, records with titles, records with dates, and records with times. These counts distinguish an empty index from candidates that fail card, title, or date/time extraction. The report does not retain response HTML, card text, descriptions, images, or cookies.
