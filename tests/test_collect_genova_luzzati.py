@@ -83,6 +83,8 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
     assert result["access"]["request_count"] == 2
     assert result["access"]["robots_decision"] == "allowed"
     assert result["events_found"] == 4
+    assert result["diagnostics"]["distinct_candidate_urls"] == 3
+    assert result["diagnostics"]["records_with_titles"] == 3
     assert all(set(event) <= {
         "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
         "normalized_url", "source_uid", "category", "category_confidence", "review_status"
@@ -111,3 +113,58 @@ def test_collection_stops_when_exact_index_path_is_disallowed():
         collect(active_source(), get=get, sleeper=lambda _: None)
 
     assert calls == ["https://www.spazio-comune.org/robots.txt"]
+
+
+def test_index_parser_handles_div_and_article_theme_cards_with_safe_diagnostics():
+    html = FIXTURE.parent.joinpath("luzzati-index-div-cards.html").read_text(encoding="utf-8")
+    diagnostics = {}
+
+    events = parse_index(html, 51, diagnostics=diagnostics)
+
+    assert [event["title"] for event in events] == ["Concerto di prova", "Laboratorio aperto"]
+    assert events[0]["start_time"] == "2026-10-09T20:30:00+02:00"
+    assert events[0]["location"] == "Giardini Luzzati - Spazio Comune"
+    assert events[1]["start_time"] is None
+    assert diagnostics == {
+        "same_host_product_links": 3,
+        "distinct_candidate_urls": 2,
+        "candidate_records": 2,
+        "records_with_titles": 2,
+        "records_with_dates": 1,
+        "records_with_times": 1,
+    }
+    assert all("description" not in event and "image" not in event for event in events)
+
+
+def test_index_parser_reports_empty_index_without_retaining_page_content():
+    html = FIXTURE.parent.joinpath("luzzati-index-empty.html").read_text(encoding="utf-8")
+    diagnostics = {}
+
+    events = parse_index(html, 51, diagnostics=diagnostics)
+
+    assert events == []
+    assert diagnostics == {
+        "same_host_product_links": 0,
+        "distinct_candidate_urls": 0,
+        "candidate_records": 0,
+        "records_with_titles": 0,
+        "records_with_dates": 0,
+        "records_with_times": 0,
+    }
+
+
+def test_index_parser_diagnostics_expose_candidates_missing_a_title():
+    html = FIXTURE.parent.joinpath("luzzati-index-untitled.html").read_text(encoding="utf-8")
+    diagnostics = {}
+
+    events = parse_index(html, 51, diagnostics=diagnostics)
+
+    assert events == []
+    assert diagnostics == {
+        "same_host_product_links": 1,
+        "distinct_candidate_urls": 1,
+        "candidate_records": 1,
+        "records_with_titles": 0,
+        "records_with_dates": 1,
+        "records_with_times": 1,
+    }
