@@ -78,100 +78,205 @@ def validate_active_source(source: dict, url: str = INDEX_URL) -> dict:
     return source
 
 
+class _Element:
+    """Small transient DOM node; source markup is never returned or persisted."""
+
+    def __init__(self, tag: str, attrs: dict, parent: "_Element | None" = None):
+        self.tag = tag
+        self.attrs = attrs
+        self.parent = parent
+        self.children: list[_Element] = []
+        self.text_parts: list[str] = []
+
+    def walk(self):
+        yield self
+        for child in self.children:
+            yield from child.walk()
+
+
 class _ProductIndexParser(HTMLParser):
+    VOID_TAGS = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+        "meta", "param", "source", "track", "wbr",
+    }
+    SKIP_TAGS = {"script", "style", "noscript", "svg"}
+    CONTAINER_TAGS = {"article", "div", "li", "section", "ul"}
+    GENERIC_TITLES = {"read more", "leggi", "scopri di più", "dettagli"}
+
     def __init__(self, base_url: str) -> None:
         super().__init__(convert_charrefs=True)
         self.base_url = base_url
-        self.records: dict[str, dict] = {}
-        self._card_depth = 0
-        self._card_urls: list[str] = []
-        self._card_text: list[str] = []
-        self._heading_depth = 0
-        self._heading_text: list[str] = []
-        self._heading_url: str | None = None
-        self._anchor_stack: list[str | None] = []
+        self.host = (urlsplit(base_url).hostname or "").casefold()
+        self.root = _Element("document", {})
+        self.stack = [self.root]
+        self.ignored: list[str] = []
+        self.product_links: list[tuple[_Element, str]] = []
+        self.url_sets: dict[_Element, set[str]] = {}
 
     @staticmethod
     def _attrs(attrs) -> dict:
         return {key: value or "" for key, value in attrs}
 
     def handle_starttag(self, tag, attrs):
-        values = self._attrs(attrs)
-        classes = set(values.get("class", "").split())
-        if tag == "li" and ("product" in classes or any(value.startswith("product") for value in classes)):
-            self._card_depth = 1
-            self._card_urls = []
-            self._card_text = []
-        elif self._card_depth:
-            self._card_depth += 1
+        tag = tag.casefold()
+        if self.ignored:
+            if tag in self.SKIP_TAGS:
+                self.ignored.append(tag)
+            return
+        if tag in self.SKIP_TAGS:
+            self.ignored.append(tag)
+            return
 
-        href = None
-        if tag == "a" and values.get("href"):
-            candidate = urljoin(self.base_url, values["href"])
+        # Repair common optional-end-tag cases so one malformed card cannot
+        # accidentally absorb every later event card.
+        if tag in {"li", "p", "a"}:
+            for index in range(len(self.stack) - 1, 0, -1):
+                if self.stack[index].tag == tag:
+                    del self.stack[index:]
+                    break
+
+        node = _Element(tag, self._attrs(attrs), self.stack[-1])
+        self.stack[-1].children.append(node)
+        if tag == "a" and node.attrs.get("href"):
+            candidate = urljoin(self.base_url, node.attrs["href"])
             parsed = urlsplit(candidate)
-            if parsed.hostname == urlsplit(self.base_url).hostname and parsed.path.startswith(PRODUCT_PATH_PREFIX):
-                href = _normalize_url(candidate)
-                if self._card_depth:
-                    self._card_urls.append(href)
-            self._anchor_stack.append(href)
+            if (
+                parsed.scheme.casefold() == "https"
+                and (parsed.hostname or "").casefold() == self.host
+                and parsed.path.startswith(PRODUCT_PATH_PREFIX)
+            ):
+                self.product_links.append((node, _normalize_url(candidate)))
+        if tag not in self.VOID_TAGS:
+            self.stack.append(node)
 
-        if tag in {"h2", "h3", "h4"}:
-            self._heading_depth = 1
-            self._heading_text = []
-            self._heading_url = next((value for value in reversed(self._anchor_stack) if value), None)
-        elif self._heading_depth:
-            self._heading_depth += 1
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag.casefold() not in self.VOID_TAGS and not self.ignored:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag):
-        if self._heading_depth:
-            self._heading_depth -= 1
-            if self._heading_depth == 0:
-                title = " ".join(" ".join(self._heading_text).split())
-                if title:
-                    url = self._heading_url
-                    if not url and self._card_urls:
-                        url = self._card_urls[-1]
-                    if url:
-                        record = self.records.setdefault(url, {"url": url, "title": title, "text": ""})
-                        if not record.get("title"):
-                            record["title"] = title
-                self._heading_text = []
-                self._heading_url = None
-
-        if self._card_depth:
-            self._card_depth -= 1
-            if self._card_depth == 0:
-                text = " ".join(" ".join(self._card_text).split())
-                for url in dict.fromkeys(self._card_urls):
-                    record = self.records.setdefault(url, {"url": url, "title": None, "text": ""})
-                    if len(text) > len(record.get("text") or ""):
-                        record["text"] = text
-                self._card_urls = []
-                self._card_text = []
-
-        if tag == "a" and self._anchor_stack:
-            self._anchor_stack.pop()
+        tag = tag.casefold()
+        if self.ignored:
+            for index in range(len(self.ignored) - 1, -1, -1):
+                if self.ignored[index] == tag:
+                    del self.ignored[index:]
+                    break
+            return
+        for index in range(len(self.stack) - 1, 0, -1):
+            if self.stack[index].tag == tag:
+                del self.stack[index:]
+                break
 
     def handle_data(self, data):
-        clean = " ".join(data.split())
-        if not clean:
-            return
-        if self._card_depth:
-            self._card_text.append(clean)
-        if self._heading_depth:
-            self._heading_text.append(clean)
+        if not self.ignored and self.stack:
+            clean = " ".join(data.split())
+            if clean:
+                self.stack[-1].text_parts.append(clean)
+
+    @staticmethod
+    def _text(node: _Element) -> str:
+        return " ".join(
+            part
+            for current in node.walk()
+            for part in current.text_parts
+        ).strip()
+
+    def _urls_in(self, node: _Element) -> set[str]:
+        return self.url_sets.get(node, set())
+
+    @staticmethod
+    def _ancestors(node: _Element):
+        current = node
+        while current is not None:
+            yield current
+            current = current.parent
+
+    @staticmethod
+    def _is_card(node: _Element) -> bool:
+        classes = set(node.attrs.get("class", "").casefold().split())
+        product_class = any(
+            token in {"product", "type-product", "event", "event-card", "event-item"}
+            or token.startswith(("product-", "event-"))
+            or token == "woocommerce-loop-product"
+            for token in classes
+        )
+        return node.tag == "article" or product_class or (
+            node.tag == "li" and ("product" in classes or "type-product" in classes)
+        )
+
+    def _container_for(self, link: _Element, url: str) -> _Element:
+        ancestors = list(self._ancestors(link))
+        for node in ancestors[1:]:
+            if self._is_card(node) and self._urls_in(node) == {url}:
+                return node
+
+        # Themes do not always label cards. Use the broadest nearby common
+        # container that has only this distinct product URL; stop at a grid
+        # containing links to multiple products.
+        best = link
+        for node in ancestors[1:]:
+            if node.tag not in self.CONTAINER_TAGS:
+                continue
+            urls = self._urls_in(node)
+            if urls == {url}:
+                best = node
+            elif urls:
+                break
+        return best
+
+    def records(self) -> tuple[list[dict], dict]:
+        links_by_url: dict[str, list[_Element]] = {}
+        for link, url in self.product_links:
+            links_by_url.setdefault(url, []).append(link)
+            for ancestor in self._ancestors(link):
+                self.url_sets.setdefault(ancestor, set()).add(url)
+
+        records = []
+        for url, links in links_by_url.items():
+            containers = [self._container_for(link, url) for link in links]
+            container = max(containers, key=lambda node: len(self._text(node)))
+            headings = [
+                self._text(node)
+                for node in container.walk()
+                if node.tag in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                and self._text(node)
+            ]
+            linked_titles = [self._text(link) for link in links if self._text(link)]
+            title = next(iter(headings), None) or max(linked_titles, key=len, default=None)
+            if title and title.casefold() in self.GENERIC_TITLES:
+                title = None
+            records.append({"url": url, "title": title, "text": self._text(container)})
+
+        diagnostics = {
+            "same_host_product_links": len(self.product_links),
+            "distinct_candidate_urls": len(links_by_url),
+            "candidate_records": len(records),
+            "records_with_titles": sum(bool(record["title"]) for record in records),
+            "records_with_dates": 0,
+            "records_with_times": 0,
+        }
+        return records, diagnostics
 
 
-def parse_index(html: str, feed_id: int, publisher: str = SOURCE_NAME) -> list[dict]:
+def parse_index(
+    html: str,
+    feed_id: int,
+    publisher: str = SOURCE_NAME,
+    diagnostics: dict | None = None,
+) -> list[dict]:
     parser = _ProductIndexParser(INDEX_URL)
     parser.feed(html)
+    records, counts = parser.records()
     events: list[dict] = []
-    for record in parser.records.values():
+    for record in records:
         title = (record.get("title") or "").strip()
-        if not title:
-            continue
         text = record.get("text") or ""
         date_match = DATE_RE.search(text)
+        times = list(dict.fromkeys((int(h), int(m)) for h, m in TIME_RE.findall(text)))
+        counts["records_with_dates"] += bool(date_match)
+        counts["records_with_times"] += bool(times)
+        if not title:
+            continue
         venue_match = VENUE_RE.search(text)
         venue = " ".join(venue_match.group(0).split()) if venue_match else None
         starts: list[str | None] = [None]
@@ -179,7 +284,6 @@ def parse_index(html: str, feed_id: int, publisher: str = SOURCE_NAME) -> list[d
             day = int(date_match.group(1))
             month = MONTHS[date_match.group(2).lower()]
             year = int(date_match.group(3))
-            times = list(dict.fromkeys((int(h), int(m)) for h, m in TIME_RE.findall(text)))
             if times:
                 starts = [
                     datetime(year, month, day, hour, minute, tzinfo=TIME_ZONE).isoformat()
@@ -201,6 +305,8 @@ def parse_index(html: str, feed_id: int, publisher: str = SOURCE_NAME) -> list[d
                 "category_confidence": None,
                 "review_status": "needs_review",
             })
+    if diagnostics is not None:
+        diagnostics.update(counts)
     return events
 
 
@@ -229,7 +335,13 @@ def collect(source: dict, get=_http_get, sleeper=time.sleep) -> dict:
     body = response.read()
     if len(body) > MAX_RESPONSE_BYTES:
         raise ProbeSkipped("event index exceeded the response-size limit")
-    events = parse_index(body.decode("utf-8", errors="replace"), int(source["id"]), source.get("name") or SOURCE_NAME)
+    diagnostics = {}
+    events = parse_index(
+        body.decode("utf-8", errors="replace"),
+        int(source["id"]),
+        source.get("name") or SOURCE_NAME,
+        diagnostics=diagnostics,
+    )
     return {
         "status": "ok",
         "source": {
@@ -245,6 +357,7 @@ def collect(source: dict, get=_http_get, sleeper=time.sleep) -> dict:
             "request_count": request_count,
             "crawl_delay_seconds": crawl_delay,
         },
+        "diagnostics": diagnostics,
         "events": events,
         "events_found": len(events),
         "events_needing_review": sum(event["review_status"] == "needs_review" for event in events),
