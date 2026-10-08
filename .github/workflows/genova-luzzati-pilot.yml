@@ -126,10 +126,7 @@ jobs:
 
       - name: Collect the index and the configured number of bounded detail pages
         run: |
-          python scripts/collect_genova_luzzati.py \
-            --source "$RUNNER_TEMP/luzzati-source.json" \
-            --output "$RUNNER_TEMP/luzzati-report.json" \\
-            --detail-page-limit "${{ inputs.detail_page_limit }}"
+          python scripts/collect_genova_luzzati.py --source "$RUNNER_TEMP/luzzati-source.json" --output "$RUNNER_TEMP/luzzati-report.json" --detail-page-limit "${{ inputs.detail_page_limit }}"
 
       - name: Validate report and render transactional persistence SQL
         run: |
