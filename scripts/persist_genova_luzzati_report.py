@@ -117,6 +117,8 @@ SELECT
   NULLIF(payload #>> '{{access,robots_http_status}}', '')::integer,
   NULLIF(payload #>> '{{access,page_http_status}}', '')::integer,
   (payload #>> '{{access,request_count}}')::integer,
+  (payload #>> '{{access,detail_page_limit}}')::integer,
+  (payload #>> '{{access,detail_pages_checked}}')::integer,
   'succeeded',
   COALESCE((payload ->> 'events_found')::integer, jsonb_array_length(payload -> 'events')),
   now()
