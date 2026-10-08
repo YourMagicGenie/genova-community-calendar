@@ -15,6 +15,7 @@ import json
 import re
 import sys
 import time
+import unicodedata
 from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -59,6 +60,18 @@ DETAIL_DATE_RE = re.compile(
     re.I,
 )
 CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", re.I)
+CATEGORY_KEYWORDS = {
+    "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
+    "theatre-performance": ("teatro", "spettacolo", "performance", "danza", "cabaret", "commedia"),
+    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "film"),
+    "sports": ("sport", "partita", "torneo", "fitness", "allenamento", "gara"),
+    "food-drink": ("degustazione", "cucina", "vino", "birra", "aperitivo", "cena", "street food"),
+    "festivals-markets": ("festival", "mercato", "mercatino", "fiera", "sagra"),
+    "talks-workshops": ("laboratorio", "workshop", "corso", "conferenza", "presentazione", "poesia", "lettura"),
+    "family": ("bambini", "famiglie", "per bambini", "family", "kids"),
+    "outdoors-tours": ("escursione", "trekking", "passeggiata", "visita guidata", "tour", "natura"),
+    "community-social": ("comunita", "sociale", "incontro", "giochi", "socialita"),
+}
 MONTHS = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12,
@@ -438,6 +451,34 @@ def _category(value):
     return None, None
 
 
+def _fold_text(value):
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
+
+
+def _infer_category(title, description):
+    """Conservative Italian/English keyword classification from source wording."""
+    title_text, description_text = _fold_text(title or ""), _fold_text(description or "")
+    scores = {}
+    title_hits = set()
+    for category, phrases in CATEGORY_KEYWORDS.items():
+        for phrase in phrases:
+            needle = _fold_text(phrase)
+            pattern = re.compile(r"(?<!\\w)" + re.escape(needle) + r"(?!\\w)")
+            if pattern.search(title_text):
+                scores[category] = scores.get(category, 0) + 3
+                title_hits.add(category)
+            if pattern.search(description_text):
+                scores[category] = scores.get(category, 0) + 1
+    if not scores:
+        return None, None
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        return None, None
+    category = ranked[0][0]
+    return category, (0.82 if category in title_hits else 0.76)
+
+
 def _metadata_time(value):
     if not isinstance(value, str):
         return None
@@ -458,7 +499,14 @@ def _metadata_time(value):
 def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
     parser = _DetailParser()
     parser.feed(html)
-    text = " ".join(parser.scoped_text or parser.text)
+    scoped_text = " ".join(parser.scoped_text)
+    page_text = " ".join(parser.text)
+    # Some publisher templates put the event date/venue in a sibling widget,
+    # outside the WooCommerce summary. Use the full visible page when the
+    # scoped summary does not contain both date and time evidence.
+    scoped_has_date = bool(DETAIL_DATE_RE.search(scoped_text))
+    scoped_has_time = bool(TIME_RE.search(scoped_text))
+    text = scoped_text if scoped_has_date and scoped_has_time else page_text
     facts = []
     for raw in parser.jsonld:
         try:
@@ -513,6 +561,17 @@ def parse_detail(html: str, index_event: dict, feed_id: int) -> list[dict]:
     explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
     if explicit_category and category_match:
         explicit_confidence = 0.85
+    if not explicit_category:
+        description_parts = (
+            parser.meta.get("description", [])
+            + parser.meta.get("og:description", [])
+            + parser.scoped_text
+            + parser.text
+        )
+        explicit_category, explicit_confidence = _infer_category(
+            next(iter(parser.h1), None) or index_event["title"],
+            " ".join(description_parts),
+        )
     if not facts:
         facts = [(None, None, None, None, None, None)]
     output = []
