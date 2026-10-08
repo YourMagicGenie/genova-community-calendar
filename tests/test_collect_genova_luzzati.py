@@ -233,6 +233,42 @@ def test_detail_category_is_inferred_from_title_and_source_description(title, de
     assert event["category_confidence"] == confidence
 
 
+
+def test_detail_category_uses_event_description_and_ignores_sitewide_footer():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = """
+    <html><body>
+      <main class="product-summary">
+        <h1>Eravamo comunisti - Massimo D’Alema</h1>
+        <p>Presentazione del libro con l’autore e dibattito pubblico.</p>
+      </main>
+      <footer><p>Spazio Comune: luogo di incontro, comunità e socialità.</p></footer>
+    </body></html>
+    """
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["category"] == "talks-workshops"
+    assert event["category_confidence"] == 0.76
+    assert "category=title_or_description_keywords" in event["evidence_note"]
+
+
+def test_detail_documentary_screening_is_not_misclassified_by_discussion_language():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    html = """
+    <html><body>
+      <main class="product-summary">
+        <h1>Ballata Femmenella</h1>
+        <p>Proiezione del documentario e del film, con incontro e confronto con il pubblico.</p>
+      </main>
+      <footer><p>Comunità, socialità, eventi e incontri ai Giardini Luzzati.</p></footer>
+    </body></html>
+    """
+    event = parse_detail(html, _detail_index_event(), 51)[0]
+    assert event["category"] == "art-exhibitions"
+    assert event["category_confidence"] == 0.76
+
+
 def test_detail_structured_metadata_is_timezone_normalized():
     from scripts.collect_genova_luzzati import parse_detail
 
