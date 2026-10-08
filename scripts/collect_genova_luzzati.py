@@ -464,7 +464,7 @@ def _infer_category(title, description):
     for category, phrases in CATEGORY_KEYWORDS.items():
         for phrase in phrases:
             needle = _fold_text(phrase)
-            pattern = re.compile(r"(?<!\\w)" + re.escape(needle) + r"(?!\\w)")
+            pattern = re.compile(r"(?<!\w)" + re.escape(needle) + r"(?!\w)")
             if pattern.search(title_text):
                 scores[category] = scores.get(category, 0) + 3
                 title_hits.add(category)
