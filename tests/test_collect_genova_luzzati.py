@@ -87,7 +87,8 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
     assert result["diagnostics"]["records_with_titles"] == 3
     assert all(set(event) <= {
         "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-        "normalized_url", "source_uid", "category", "category_confidence", "category_suggestions", "review_status", "evidence_note", "is_all_day"
+        "normalized_url", "source_uid", "category", "category_confidence", "category_suggestions", "review_status", "evidence_note", "is_all_day",
+        "source_metadata"
     } for event in result["events"])
 
 
@@ -402,6 +403,29 @@ def test_diagnostics_preserve_yearless_dates_without_inventing_timestamps(date, 
     assert 'year_missing' in diagnostic['unresolved_reasons']
     assert diagnostic['date_time_methods'] == ['visible_event_text']
     assert all('description' not in event for event in events)
+    metadata = events[0]['source_metadata']
+    assert metadata['kind'] == 'source_page'
+    assert metadata['date_precision'] == 'yearless'
+    expected_day, expected_month = (9, 10) if date.startswith('Venerdì') else (11, 9)
+    assert metadata['partial_dates'] == [{'day': expected_day, 'month': expected_month}]
+    assert metadata['field_evidence']['date']['text'] in date
+    assert metadata['field_evidence']['time']['text']
+    assert 'description' not in metadata
+
+
+def test_partial_metadata_marks_ambiguous_and_malformed_dates_without_timestamp():
+    from scripts.collect_genova_luzzati import parse_detail
+    ambiguous = parse_detail('<main><h1>Prova</h1><p>9 ottobre 2026 e 10 ottobre 2026 ore 18.00</p></main>', _detail_index_event(), 51)[0]
+    assert ambiguous['start_time'] is None
+    assert ambiguous['source_metadata']['date_precision'] == 'listed_dates'
+    assert 'ambiguous_dates' in ambiguous['source_metadata']['unresolved_reasons']
+
+    malformed = parse_detail('<main><h1>Prova</h1><p>31 febbraio ore 18.00</p><p>Pagina integrale da non conservare</p></main>', _detail_index_event(), 51)[0]
+    assert malformed['start_time'] is None
+    assert malformed['source_metadata']['date_precision'] == 'unresolved'
+    assert malformed['source_metadata']['partial_dates'] == []
+    assert 'invalid_date_clue' in malformed['source_metadata']['unresolved_reasons']
+    assert 'Pagina integrale' not in str(malformed['source_metadata'])
 
 
 def test_yearless_date_uses_one_explicit_program_month_year_context():

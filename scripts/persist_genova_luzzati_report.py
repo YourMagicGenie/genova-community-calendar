@@ -10,6 +10,7 @@ import argparse
 import base64
 import json
 import re
+import calendar
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -27,6 +28,7 @@ GENOVA_CATEGORY_KEYS = {
     "festivals-markets", "talks-workshops", "family", "outdoors-tours", "community-social",
 }
 EVENT_FIELDS.add("is_all_day")
+EVENT_FIELDS.add("source_metadata")
 
 
 def _iso_or_none(value, field):
@@ -37,6 +39,42 @@ def _iso_or_none(value, field):
     parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is None:
         raise ValueError(f"{field} must include a timezone offset")
+
+
+def _validate_source_metadata(value, event_url):
+    allowed = {"kind", "source_url", "field_evidence", "unresolved_reasons", "date_precision", "partial_dates"}
+    if not isinstance(value, dict) or set(value) != allowed:
+        raise ValueError("source metadata fields are invalid")
+    if value["kind"] != "source_page" or value["source_url"] != event_url:
+        raise ValueError("source metadata does not match the event source URL")
+    if value["date_precision"] not in {"day", "range", "end_only", "weekday_only", "unknown", "yearless", "unresolved", "listed_dates"}:
+        raise ValueError("source metadata date precision is invalid")
+    partial = value["partial_dates"]
+    if not isinstance(partial, list) or len(partial) > 31:
+        raise ValueError("partial dates must be a bounded list")
+    for clue in partial:
+        if not isinstance(clue, dict) or set(clue) != {"day", "month"}:
+            raise ValueError("partial date fields are invalid")
+        day, month = clue["day"], clue["month"]
+        if any(isinstance(item, bool) or not isinstance(item, int) for item in (day, month)):
+            raise ValueError("partial date day and month must be integers")
+        if not 1 <= month <= 12 or not 1 <= day <= calendar.monthrange(2000, month)[1]:
+            raise ValueError("partial date day/month is invalid")
+    reasons = value["unresolved_reasons"]
+    if not isinstance(reasons, list) or len(reasons) > 12 or any(
+        not isinstance(reason, str) or not reason or len(reason) > 160 for reason in reasons
+    ):
+        raise ValueError("unresolved reasons must be short strings")
+    evidence = value["field_evidence"]
+    if not isinstance(evidence, dict) or set(evidence) - {"date", "time"}:
+        raise ValueError("field evidence keys are invalid")
+    for item in evidence.values():
+        if (not isinstance(item, dict) or set(item) != {"text", "method"}
+                or not isinstance(item["text"], str) or not item["text"] or len(item["text"]) > 240
+                or item["method"] != "visible_event_text"):
+            raise ValueError("field evidence must contain only a short visible-text clue")
+    if len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > 16384:
+        raise ValueError("source metadata exceeds the bounded size limit")
 
 
 def validate_report(report: dict) -> None:
@@ -113,6 +151,11 @@ def validate_report(report: dict) -> None:
         evidence = event.get("evidence_note")
         if evidence is not None and (not isinstance(evidence, str) or len(evidence) > 240):
             raise ValueError("evidence note must be a short safe summary")
+        if "source_metadata" not in event:
+            raise ValueError("source metadata is required for every candidate")
+        _validate_source_metadata(event["source_metadata"], event["normalized_url"])
+        if event["source_metadata"]["date_precision"] in {"yearless", "unresolved", "listed_dates"} and event.get("start_time") is not None:
+            raise ValueError("incomplete or ambiguous date evidence cannot set a timestamp")
 
 
 def render_sql(report: dict, revision: str) -> str:

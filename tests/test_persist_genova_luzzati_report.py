@@ -84,6 +84,36 @@ def test_report_validation_fails_closed(mutation):
         validate_report(value)
 
 
+@pytest.mark.parametrize("mutation", ["bad_partial_date", "incomplete_with_timestamp", "oversized_evidence", "missing_metadata"])
+def test_report_rejects_malformed_or_unbounded_source_metadata(mutation):
+    value = copy.deepcopy(report())
+    event = value["events"][0]
+    if mutation == "bad_partial_date":
+        event["source_metadata"]["partial_dates"] = [{"day": 31, "month": 2}]
+    elif mutation == "incomplete_with_timestamp":
+        event["source_metadata"].update(date_precision="yearless", partial_dates=[{"day": 9, "month": 10}])
+        event["start_time"] = "2026-10-09T18:00:00+02:00"
+    elif mutation == "oversized_evidence":
+        event["source_metadata"]["field_evidence"] = {"date": {"text": "x" * 241, "method": "visible_event_text"}}
+    else:
+        del event["source_metadata"]
+    with pytest.raises(ValueError):
+        validate_report(value)
+
+
+def test_luzzati_and_bulletin_metadata_share_the_review_evidence_core():
+    website = report()["events"][0]["source_metadata"]
+    bulletin = {
+        "kind": "monthly_bulletin_pdf", "field_evidence": {}, "unresolved_reasons": [],
+        "date_precision": "yearless", "partial_dates": [{"day": 9, "month": 10}],
+        "bulletin_url": "https://www.visitgenoa.it/october.pdf", "source_page": 2,
+        "source_bbox": [10, 10, 20, 20],
+    }
+    shared = {"field_evidence", "unresolved_reasons", "date_precision", "partial_dates"}
+    assert shared <= website.keys()
+    assert shared <= bulletin.keys()
+
+
 def test_renderer_rejects_non_commit_revision():
     with pytest.raises(ValueError, match="full Git commit"):
         render_sql(report(), "main")
