@@ -99,7 +99,15 @@ AS $$
     AND f.city = 'genova'
     AND f.status = 'active'
     AND public.genova_occurrence_is_current(e.start_time, e.end_time, e.is_all_day)
-  ORDER BY e.start_time, e.id
+  UNION ALL
+  SELECT s.published_event_id, s.title, s.start_time, s.end_time, false, s.location,
+    'Porto Aperto community'::text AS publisher, s.url, NULL::text AS category
+  FROM public.event_submissions s
+  JOIN public.events legacy_event ON legacy_event.id = s.published_event_id
+    AND legacy_event.source_uid = 'community:' || s.id::text
+  WHERE s.status = 'approved'
+    AND public.genova_occurrence_is_current(s.start_time, s.end_time, false)
+  ORDER BY start_time, id
 $$;
 REVOKE ALL ON FUNCTION public.list_public_genova_events() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.list_public_genova_events() TO anon, authenticated, service_role;
