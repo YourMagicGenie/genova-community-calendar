@@ -389,6 +389,7 @@ def test_detail_page_metadata_is_used_when_jsonld_is_absent():
 @pytest.mark.parametrize(('date', 'expected_times'), [
     ('Venerdì 9 ottobre alle ore 18.00', ['18:00']),
     ('Giovedì 11 settembre, ore 20.00 e ore 20.30', ['20:00', '20:30']),
+    ('Venerdì 9 ottobre, alle 18', ['18:00']),
 ])
 def test_diagnostics_preserve_yearless_dates_without_inventing_timestamps(date, expected_times):
     from scripts.collect_genova_luzzati import parse_detail
@@ -401,6 +402,43 @@ def test_diagnostics_preserve_yearless_dates_without_inventing_timestamps(date, 
     assert 'year_missing' in diagnostic['unresolved_reasons']
     assert diagnostic['date_time_methods'] == ['visible_event_text']
     assert all('description' not in event for event in events)
+
+
+def test_yearless_date_uses_one_explicit_program_month_year_context():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    diagnostic = {}
+    html = '<main><h2>Programma ottobre 2026</h2><h1>Prova</h1><p>Venerdì 9 ottobre, alle 18</p><p>Giardini Luzzati</p></main>'
+    events = parse_detail(html, _detail_index_event(), 51, diagnostics=diagnostic)
+
+    assert events[0]['start_time'] == '2026-10-09T18:00:00+02:00'
+    assert events[0]['review_status'] == 'needs_review'
+    assert diagnostic['year_context'] == 'explicit_program_or_month_label'
+    assert diagnostic['precision'] == 'time'
+
+
+def test_yearless_date_stays_unresolved_when_program_context_has_multiple_years():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    diagnostic = {}
+    html = '<main><h2>Programma ottobre 2026 e novembre 2027</h2><p>Venerdì 9 ottobre, alle 18</p></main>'
+    events = parse_detail(html, _detail_index_event(), 51, diagnostics=diagnostic)
+
+    assert events[0]['start_time'] is None
+    assert diagnostic['year_context'] is None
+    assert 'year_missing' in diagnostic['unresolved_reasons']
+
+
+def test_location_from_visible_page_fallback_is_labelled_for_review():
+    from scripts.collect_genova_luzzati import parse_detail
+
+    diagnostic = {}
+    html = '<main><h1>Prova</h1><p>Venerdì 9 ottobre, alle 18</p></main><footer><p>Giardini Luzzati</p></footer>'
+    event = parse_detail(html, _detail_index_event(), 51, diagnostics=diagnostic)[0]
+
+    assert event['location'] == 'Giardini Luzzati'
+    assert 'location=visible_page_fallback' in event['evidence_note']
+    assert diagnostic['location_methods'] == ['visible_page_fallback']
 
 
 def test_nested_div_does_not_end_event_scope_before_category_text():

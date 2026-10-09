@@ -6,6 +6,8 @@
 
 - Prefill admin event review with selectable shared category suggestions and visible confidence/evidence; reviewers can correct a primary category using the stable taxonomy without free-text entry.
 
+- Resolve yearless Luzzati dates only from one explicit program/month-year context, normalize hour-only Italian times, and label venue matches found outside event content as fallback evidence.
+
 - Preserve enriched undated source records as linked audit history, show only active facts in the admin queue, suppress partial-date regressions, and keep collector imports from overwriting reviewed corrections.
 
 - Luzzati manual pilots now keep a seven-day facts-only diagnostic artifact and show each discovered candidate’s fetch coverage, partial dates, field gaps, and extraction methods. Nested product markup no longer ends the event classification scope early.

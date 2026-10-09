@@ -12,7 +12,7 @@ The Luzzati pilot remains manual and source-approval gated. It reads the active 
 
 ## Facts and review
 
-Structured event metadata is preferred, followed by visible event-page text. The collector emits only title, date/time normalized to `Europe/Rome`, venue when explicit, one exact-match project category when supported, publisher, original URL, stable occurrence identity, a category confidence, and a short evidence-source label. Separate showtimes remain separate occurrences. Missing or ambiguous facts remain null; every new fact remains `needs_review`.
+Structured event metadata is preferred, followed by visible event-page text. The collector emits only title, date/time normalized to `Europe/Rome`, venue when explicit, one exact-match project category when supported, publisher, original URL, stable occurrence identity, a category confidence, and a short evidence-source label. Separate showtimes remain separate occurrences. A date without a year is resolved only when the visible page has exactly one explicit program or month/year label and the event has one unambiguous date. Otherwise its timestamp remains null. Italian `ore 18.00` / `alle 18` times are normalized to `18:00`. A venue found only outside the event-content scope is retained with `visible_page_fallback` evidence so an admin can verify it; the event remains `needs_review`.
 
 Evidence labels identify only the source type (for example, structured metadata or visible page text); they do not copy source prose. The report and persistence SQL do not retain HTML, descriptions, image URLs, poster bytes, cookies, or response bodies. Poster-only dates are not inferred in this issue; they remain unknown.
 
