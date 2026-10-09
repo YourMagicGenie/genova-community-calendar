@@ -161,6 +161,8 @@ td { color: #29443a; }
 .button-danger { border-color: #9a382c; background: #9a382c; }
 .button-danger:hover:not(:disabled) { background: #7c2e24; }
 .event-card-list { display: grid; gap: 16px; }
+.review-group { display: grid; gap: 12px; margin-top: 20px; }
+.review-group > h3 { margin: 0; color: #315447; font-size: 1rem; }
 .event-review-card { padding: 18px; border: 1px solid #d9e2dc; border-radius: 14px; background: #fbfcfb; }
 .event-review-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .event-review-head h3 { margin: 0; font-size: 1.1rem; }

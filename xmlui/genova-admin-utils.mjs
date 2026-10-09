@@ -19,6 +19,10 @@ export function toRomeInput(value) {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
+export function toRomeDateInput(value) {
+  return toRomeInput(value).slice(0, 10);
+}
+
 function offsetAt(instant) {
   const name = new Intl.DateTimeFormat("en", { timeZone: ROME, timeZoneName: "longOffset" })
     .formatToParts(new Date(instant)).find((part) => part.type === "timeZoneName")?.value;
@@ -45,6 +49,11 @@ export function fromRomeInput(value) {
       return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}` === value;
     });
   return candidates.length === 1 ? new Date(candidates[0]).toISOString() : null;
+}
+
+export function fromRomeDateInput(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+  return fromRomeInput(`${value}T00:00`);
 }
 
 export function validateDemoEvents(events) {

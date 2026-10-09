@@ -332,6 +332,7 @@ def parse_index(
                 "title": title,
                 "start_time": start_time,
                 "end_time": None,
+                "is_all_day": False,
                 "location": venue,
                 "publisher": publisher,
                 "url": record["url"],
@@ -608,6 +609,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
             evidence.append(f"category={category_method or 'event_metadata'}")
         output.append({
             "feed_id": feed_id, "title": title, "start_time": start, "end_time": end,
+            "is_all_day": False,
             "location": location, "publisher": index_event["publisher"],
             "url": index_event["url"], "normalized_url": index_event["normalized_url"],
             "source_uid": _source_uid(feed_id, index_event["normalized_url"], start),

@@ -4,7 +4,7 @@
   if (root) root.GenovaLive = api;
 })(typeof window === "undefined" ? globalThis : window, function createGenovaLive() {
   const TIME_ZONE = "Europe/Rome";
-  const PUBLIC_FIELDS = new Set(["id", "title", "start_time", "end_time", "location", "publisher", "url", "category"]);
+  const PUBLIC_FIELDS = new Set(["id", "title", "start_time", "end_time", "is_all_day", "location", "publisher", "url", "category"]);
 
   function validateEvents(value) {
     if (!Array.isArray(value)) throw new Error("Live events response must be a list.");
@@ -15,6 +15,7 @@
       if (!Number.isInteger(event.id) || typeof event.title !== "string" || !event.title.trim()) {
         throw new Error("Live event identity or title is invalid.");
       }
+      if (typeof event.is_all_day !== "boolean") throw new Error("Live event date precision is invalid.");
       const start = new Date(event.start_time);
       if (!event.start_time || Number.isNaN(start.getTime())) throw new Error("Published events require a valid start time.");
       if (typeof event.publisher !== "string" || !event.publisher.trim()) throw new Error("Published events require a publisher.");
@@ -25,10 +26,10 @@
     return value;
   }
 
-  function formatTime(value) {
+  function formatTime(value, isAllDay = false) {
     return new Intl.DateTimeFormat("en-GB", {
-      timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short",
-      year: "numeric", hour: "2-digit", minute: "2-digit",
+      timeZone: TIME_ZONE, weekday: "short", day: "numeric", month: "short", year: "numeric",
+      ...(isAllDay ? {} : { hour: "2-digit", minute: "2-digit" }),
     }).format(new Date(value));
   }
 
@@ -64,7 +65,7 @@
       article.className = "event-card";
       const meta = document.createElement("p");
       meta.className = "event-meta";
-      meta.textContent = formatTime(event.start_time);
+      meta.textContent = formatTime(event.start_time, event.is_all_day);
       const title = document.createElement("h3");
       title.textContent = event.title;
       const location = document.createElement("p");

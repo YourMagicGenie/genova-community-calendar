@@ -87,7 +87,8 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
     assert result["diagnostics"]["records_with_titles"] == 3
     assert all(set(event) <= {
         "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-        "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note"
+        "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note",
+        "is_all_day"
     } for event in result["events"])
 
 

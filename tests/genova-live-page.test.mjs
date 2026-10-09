@@ -12,12 +12,16 @@ test("live route accepts only the field-limited public event shape", () => {
     title: "Validated event",
     start_time: "2026-10-07T19:00:00+02:00",
     end_time: null,
+    is_all_day: false,
     location: "Giardini Luzzati",
     publisher: "Giardini Luzzati / Spazio Comune",
     url: "https://www.spazio-comune.org/prodotto/example/",
     category: null,
   };
   assert.deepEqual(live.validateEvents([event]), [event]);
+  assert.throws(() => live.validateEvents([{ ...event, is_all_day: "false" }]), /date precision/);
+  assert.match(live.formatTime("2026-10-25T00:00:00+02:00", true), /25 Oct 2026/);
+  assert.doesNotMatch(live.formatTime("2026-10-25T00:00:00+02:00", true), /00:00/);
   assert.throws(() => live.validateEvents([{ ...event, description: "not public" }]), /outside the public contract/);
   assert.throws(() => live.validateEvents([{ ...event, start_time: null }]), /valid start time/);
 });
