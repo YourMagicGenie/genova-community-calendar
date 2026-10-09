@@ -1,6 +1,8 @@
 """Normalize inherited event categories to the public Genova taxonomy."""
 
 import json
+import re
+import unicodedata
 from pathlib import Path
 
 
@@ -15,6 +17,124 @@ for category in TAXONOMY["categories"]:
         INHERITED_LABELS.setdefault(inherited_label, []).append(category["key"])
 EXCLUDED_LABELS = set(TAXONOMY["excluded_inherited_labels"])
 REVIEW_THRESHOLD = TAXONOMY["classification_review_threshold"]
+
+# Small, deterministic cues are intentionally shared by web-page adapters and
+# document parsers. These are category signals, not source-specific rules.
+CATEGORY_KEYWORDS = {
+    "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
+    "theatre-performance": ("teatro", "spettacolo", "performance", "danza", "cabaret", "commedia", "play"),
+    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "film", "proiezione", "documentario"),
+    "sports": ("sport", "partita", "torneo", "fitness", "allenamento", "gara"),
+    "food-drink": ("degustazione", "cucina", "vino", "birra", "aperitivo", "cena", "street food"),
+    "festivals-markets": ("festival", "mercato", "mercatino", "fiera", "sagra", "market"),
+    "talks-workshops": ("laboratorio", "workshop", "corso", "conferenza", "presentazione", "poesia", "lettura", "libro", "book", "autore", "scrittore", "dibattito"),
+    "family": ("bambini", "famiglie", "per bambini", "family", "kids"),
+    "outdoors-tours": ("escursione", "trekking", "passeggiata", "visita guidata", "tour", "natura", "outdoor"),
+    "community-social": ("comunita", "socialita", "giochi", "ritrovo", "social gathering", "community"),
+}
+
+CATEGORY_ALIASES = {
+    "music": "music", "musica": "music", "concerti": "music", "music / concerts": "music",
+    "theatre": "theatre-performance", "theater": "theatre-performance", "teatro": "theatre-performance",
+    "performance": "theatre-performance", "theatre & performance": "theatre-performance",
+    "art": "art-exhibitions", "arte": "art-exhibitions", "mostre": "art-exhibitions",
+    "art & exhibitions": "art-exhibitions", "sport": "sports", "sports": "sports",
+    "food": "food-drink", "food & drink": "food-drink", "festival": "festivals-markets",
+    "festivals": "festivals-markets", "mercati": "festivals-markets", "festivals & markets": "festivals-markets",
+    "talks": "talks-workshops", "workshops": "talks-workshops", "laboratori": "talks-workshops",
+    "talks & workshops": "talks-workshops", "family": "family", "famiglie": "family",
+    "bambini": "family", "family & kids": "family", "outdoors": "outdoors-tours",
+    "tours": "outdoors-tours", "outdoor & tours": "outdoors-tours",
+    "community": "community-social", "comunita": "community-social", "community & social": "community-social",
+}
+
+
+def _fold_text(value):
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
+
+
+def _category_key(value):
+    if not isinstance(value, str):
+        return None
+    label = value.strip()
+    if label in CATEGORY_BY_KEY:
+        return label
+    if label in INHERITED_LABELS:
+        return INHERITED_LABELS[label][0]
+    folded = _fold_text(label)
+    if folded in CATEGORY_ALIASES:
+        return CATEGORY_ALIASES[folded]
+    return None
+
+
+def suggest_categories(*, title=None, text=None, section=None, venue=None, structured_categories=None):
+    """Suggest stable taxonomy keys with confidence and concise evidence.
+
+    Inputs are transient source facts. The result contains only category keys,
+    confidence values, and generic evidence summaries; it never copies source
+    prose. Callers may pass the same fields from a web page or a PDF parser.
+    """
+    title_text = _fold_text(title) if isinstance(title, str) else ""
+    text_value = _fold_text(text) if isinstance(text, str) else ""
+    section_text = _fold_text(section) if isinstance(section, str) else ""
+    venue_text = _fold_text(venue) if isinstance(venue, str) else ""
+    scores = {}
+    evidence = {}
+
+    def add(key, points, reason):
+        if key not in CATEGORY_BY_KEY:
+            return
+        scores[key] = scores.get(key, 0) + points
+        evidence.setdefault(key, set()).add(reason)
+
+    if isinstance(structured_categories, (list, tuple)):
+        structured_keys = set()
+        for label in structured_categories:
+            key = _category_key(label)
+            if key:
+                structured_keys.add(key)
+            if isinstance(label, str):
+                structured_keys.update(INHERITED_LABELS.get(label, []))
+        for key in structured_keys:
+            add(key, 5, "structured category metadata")
+
+    for category, phrases in CATEGORY_KEYWORDS.items():
+        for phrase in phrases:
+            needle = _fold_text(phrase)
+            pattern = re.compile(r"(?<!\w)" + re.escape(needle) + r"(?!\w)")
+            if pattern.search(title_text):
+                add(category, 3, "title keyword match")
+            if pattern.search(section_text):
+                add(category, 4, "section heading match")
+            if pattern.search(text_value):
+                add(category, 1, "event text keyword match")
+            if pattern.search(venue_text):
+                add(category, 1, "venue keyword match")
+
+    if not scores:
+        if not any((title_text, text_value, section_text, venue_text)):
+            return []
+        # A visible low-confidence fallback lets reviewers see the uncertain
+        # best guess. It never changes the event's review/publication status.
+        return [{
+            "category": "community-social",
+            "confidence": 0.2,
+            "evidence": "low-confidence fallback; no category-specific cue found",
+        }]
+
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    selected = [item for item in ranked if item[1] >= 2][:3]
+    if not selected:
+        selected = ranked[:1]
+    return [
+        {
+            "category": key,
+            "confidence": round(min(0.98, 0.45 + score * 0.1), 2),
+            "evidence": "; ".join(sorted(evidence[key])),
+        }
+        for key, score in selected
+    ]
 
 
 def normalize_genova_event(event):
