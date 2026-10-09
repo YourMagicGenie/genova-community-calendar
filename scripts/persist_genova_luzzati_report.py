@@ -20,6 +20,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 EVENT_FIELDS = {
     "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
     "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note",
+    "is_all_day",
 }
 
 
@@ -82,6 +83,8 @@ def validate_report(report: dict) -> None:
         seen.add(source_uid)
         _iso_or_none(event.get("start_time"), "start_time")
         _iso_or_none(event.get("end_time"), "end_time")
+        if "is_all_day" in event and not isinstance(event["is_all_day"], bool):
+            raise ValueError("is_all_day must be a boolean")
         confidence = event.get("category_confidence")
         if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
             raise ValueError("category confidence must be between zero and one")

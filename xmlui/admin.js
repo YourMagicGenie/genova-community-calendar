@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fromRomeInput, toRomeInput, GENOVA_CATEGORIES, validateDemoEvents } from "./genova-admin-utils.mjs";
+import { fromRomeInput, toRomeInput, fromRomeDateInput, toRomeDateInput, GENOVA_CATEGORIES, validateDemoEvents } from "./genova-admin-utils.mjs";
 
 const signInPanel = document.querySelector("#sign-in-panel");
 const adminPanel = document.querySelector("#admin-panel");
@@ -154,7 +154,24 @@ function renderEventFacts(events) {
     eventFactsBody.append(empty);
     return;
   }
-  for (const event of events) {
+  const appendGroup = (headingText, groupEvents) => {
+    if (!groupEvents.length) return;
+    const section = document.createElement("section");
+    section.className = "review-group";
+    const heading = document.createElement("h3");
+    heading.textContent = `${headingText} (${groupEvents.length})`;
+    section.append(heading);
+    const list = document.createElement("div");
+    list.className = "event-card-list";
+    section.append(list);
+    eventFactsBody.append(section);
+    for (const event of groupEvents) renderEventCard(event, list);
+  };
+  appendGroup("Needs date extraction", events.filter((event) => event.date_state === "needs_date_extraction"));
+  appendGroup("Current events for review", events.filter((event) => event.date_state === "current" && event.review_status !== "published"));
+  appendGroup("Currently published", events.filter((event) => event.date_state === "current" && event.review_status === "published"));
+}
+function renderEventCard(event, container) {
     const card = document.createElement("article");
     card.className = "event-review-card";
     card.dataset.eventId = String(event.id);
@@ -164,7 +181,7 @@ function renderEventFacts(events) {
     title.textContent = event.title;
     const status = document.createElement("span");
     status.className = "review-badge";
-    status.textContent = event.review_status.replaceAll("_", " ");
+    status.textContent = `${event.review_status.replaceAll("_", " ")}${event.is_all_day ? " · all day" : ""}`;
     head.append(title, status);
     card.append(head);
     const original = document.createElement("a");
@@ -179,8 +196,16 @@ function renderEventFacts(events) {
     form.className = "event-edit-form";
     form.dataset.eventId = String(event.id);
     form.append(fieldLabel("Event title", Object.assign(document.createElement("input"), { type: "text", value: event.title, required: true }), "title"));
-    form.append(fieldLabel("Date and time (Europe/Rome)", Object.assign(document.createElement("input"), { type: "datetime-local", value: toRomeInput(event.start_time), required: event.review_status === "published" }), "start_time"));
-    form.append(fieldLabel("End date and time (optional)", Object.assign(document.createElement("input"), { type: "datetime-local", value: toRomeInput(event.end_time) }), "end_time"));
+    const temporalType = event.is_all_day ? "date" : "datetime-local";
+    const startValue = event.is_all_day ? toRomeDateInput(event.start_time) : toRomeInput(event.start_time);
+    const endValue = event.is_all_day ? toRomeDateInput(event.end_time) : toRomeInput(event.end_time);
+    form.append(fieldLabel(event.is_all_day ? "Date (Europe/Rome)" : "Date and time (Europe/Rome)", Object.assign(document.createElement("input"), { type: temporalType, value: startValue, required: event.review_status === "published" }), "start_time"));
+    form.append(fieldLabel(event.is_all_day ? "Last date (optional)" : "End date and time (optional)", Object.assign(document.createElement("input"), { type: temporalType, value: endValue }), "end_time"));
+    const allDayValue = document.createElement("input");
+    allDayValue.type = "hidden";
+    allDayValue.name = "is_all_day";
+    allDayValue.value = event.is_all_day ? "true" : "false";
+    form.append(allDayValue);
     form.append(fieldLabel("Venue / location", Object.assign(document.createElement("input"), { type: "text", value: event.location || "" }), "location"));
     form.append(fieldLabel("Category", categorySelect(event.category), "category"));
     form.append(fieldLabel("Original source link", Object.assign(document.createElement("input"), { type: "url", value: event.direct_url, required: true }), "direct_url"));
@@ -236,8 +261,7 @@ function renderEventFacts(events) {
     historyBox.dataset.historyFor = String(event.id);
     form.append(historyBox);
     card.append(form);
-    eventFactsBody.append(card);
-  }
+    container.append(card);
 }
 async function refreshRuns() {
   if (!supabase || !isAdmin || runInProgress) return;
@@ -257,9 +281,7 @@ async function refreshRuns() {
 async function refreshEventFacts() {
   if (!supabase || !isAdmin || eventUpdateInProgress) return;
   try {
-    const { data, error } = await supabase.from("genova_event_facts")
-      .select("id,title,start_time,end_time,location,publisher_label,direct_url,category,category_confidence,tags,review_status,evidence_note,last_seen,superseded_by")
-      .is("superseded_by", null).order("start_time", { ascending: true, nullsFirst: false }).limit(100);
+    const { data, error } = await supabase.rpc("list_admin_genova_event_review_queue");
     if (error) throw error;
     renderEventFacts(data || []);
     setMessage(eventReviewMessage, (data || []).length
@@ -307,8 +329,9 @@ async function saveEventEdits(form) {
   const data = new FormData(form);
   const startText = String(data.get("start_time") || "");
   const endText = String(data.get("end_time") || "");
-  const startTime = startText ? fromRomeInput(startText) : null;
-  const endTime = endText ? fromRomeInput(endText) : null;
+  const isAllDay = data.get("is_all_day") === "true";
+  const startTime = startText ? (isAllDay ? fromRomeDateInput(startText) : fromRomeInput(startText)) : null;
+  const endTime = endText ? (isAllDay ? fromRomeDateInput(endText) : fromRomeInput(endText)) : null;
   if ((startText && !startTime) || (endText && !endTime)) {
     setMessage(eventReviewMessage, "That date/time is invalid or ambiguous in Europe/Rome. Check the clock change and try again.", "error");
     return;
@@ -319,7 +342,7 @@ async function saveEventEdits(form) {
   }
   const category = String(data.get("category") || "") || null;
   const patch = {
-    title: String(data.get("title") || "").trim(), start_time: startTime, end_time: endTime,
+    title: String(data.get("title") || "").trim(), start_time: startTime, end_time: endTime, is_all_day: isAllDay,
     location: String(data.get("location") || "").trim() || null,
     direct_url: String(data.get("direct_url") || "").trim(), category,
     category_confidence: category ? 1 : null,

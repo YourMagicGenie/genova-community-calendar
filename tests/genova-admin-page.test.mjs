@@ -24,6 +24,8 @@ test('admin page links to the calendar, labels the owner account, and exposes no
   assert.match(script, /isAdmin/);
   assert.match(html, /Collected event review/);
   assert.match(script, /genova_event_facts/);
+  assert.match(script, /list_admin_genova_event_review_queue/);
+  assert.match(script, /Needs date extraction/);
   assert.match(script, /review_status/);
   assert.match(script, /published/);
   assert.match(script, /clear_genova_demo_events/);

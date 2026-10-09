@@ -55,7 +55,7 @@ INSERT INTO public.genova_event_facts (
   direct_url, normalized_url, review_status
 )
 SELECT id, 'issue51-published', 'Published fixture',
-       '2026-10-07T19:00:00+02:00', 'Giardini Luzzati - Spazio Comune',
+       now() + interval '2 days', 'Giardini Luzzati - Spazio Comune',
        'community-social',
        'Giardini Luzzati / Spazio Comune',
        'https://www.spazio-comune.org/prodotto/published-fixture/',

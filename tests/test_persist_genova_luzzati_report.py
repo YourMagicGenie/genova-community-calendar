@@ -41,6 +41,7 @@ def test_report_validation_accepts_unknown_fields_and_separate_occurrences():
     value = report()
     validate_report(value)
     assert any(event["start_time"] is None for event in value["events"])
+    assert all(isinstance(event["is_all_day"], bool) for event in value["events"])
     assert len([event for event in value["events"] if event["title"] == "Doppio turno"]) == 2
 
 
@@ -58,7 +59,7 @@ def test_persistence_sql_appends_scan_and_upserts_without_delete_or_publish():
     assert "COMMIT;" in sql
 
 
-@pytest.mark.parametrize("mutation", ["wrong_source", "blocked", "too_many_requests", "foreign_host", "published"])
+@pytest.mark.parametrize("mutation", ["wrong_source", "blocked", "too_many_requests", "foreign_host", "published", "invalid_all_day"])
 def test_report_validation_fails_closed(mutation):
     value = copy.deepcopy(report())
     if mutation == "wrong_source":
@@ -71,6 +72,8 @@ def test_report_validation_fails_closed(mutation):
         value["events"][0]["url"] = "https://example.org/event/"
     elif mutation == "published":
         value["events"][0]["review_status"] = "published"
+    elif mutation == "invalid_all_day":
+        value["events"][0]["is_all_day"] = "true"
 
     with pytest.raises(ValueError):
         validate_report(value)

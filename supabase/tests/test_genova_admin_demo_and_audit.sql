@@ -53,7 +53,7 @@ SELECT is((SELECT count(*)::int FROM public.genova_event_fact_audit WHERE source
 SELECT is((SELECT changed_by FROM public.genova_event_fact_audit WHERE source_uid='issue86-admin-audit'), '00000000-0000-0000-0000-000000000086'::uuid, 'audit records the acting admin');
 SELECT is((SELECT old_values->>'title' FROM public.genova_event_fact_audit WHERE source_uid='issue86-admin-audit'), 'Needs correction', 'audit records the previous value');
 SELECT is((SELECT new_values->>'normalized_url' FROM public.genova_event_fact_audit WHERE source_uid='issue86-admin-audit'), 'https://www.spazio-comune.org/prodotto/issue86-corrected/', 'audit records canonical link corrections');
-UPDATE public.genova_event_facts SET start_time=now(), review_status='validated' WHERE source_uid='issue86-admin-audit';
+UPDATE public.genova_event_facts SET start_time=now() + interval '1 day', review_status='validated' WHERE source_uid='issue86-admin-audit';
 SELECT throws_ok($$UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue86-admin-audit'$$,
   'published Genova events require title, location, category, and source link', 'incomplete facts cannot be published');
 UPDATE public.genova_event_facts SET location='Example venue', category='music' WHERE source_uid='issue86-admin-audit';
