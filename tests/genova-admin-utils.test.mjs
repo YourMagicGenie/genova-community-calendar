@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { fromRomeInput, toRomeInput, fromRomeDateInput, toRomeDateInput, validateDemoEvents } from "../xmlui/genova-admin-utils.mjs";
+import { fromRomeInput, toRomeInput, fromRomeDateInput, toRomeDateInput, validateDemoEvents, normalizeCategorySuggestions, isGenovaCategory } from "../xmlui/genova-admin-utils.mjs";
 
 test("Europe/Rome editor round-trips normal local date and time", () => {
   const iso = fromRomeInput("2026-10-08T19:30");
@@ -19,6 +19,17 @@ test("Europe/Rome date-only editor round-trips all-day dates without displaying 
   assert.equal(instant, "2026-10-24T22:00:00.000Z");
   assert.equal(toRomeDateInput(instant), "2026-10-25");
   assert.equal(fromRomeDateInput("2026-02-30"), null);
+});
+
+test("admin category suggestions accept only stable taxonomy keys and bounded confidence", () => {
+  assert.deepEqual(normalizeCategorySuggestions([
+    { category: "music", confidence: 0.94, evidence: "structured category metadata" },
+    { category: "date-night", confidence: 0.94, evidence: "not a category" },
+    { category: "family", confidence: 2, evidence: "invalid confidence" },
+  ]), [{ category: "music", confidence: 0.94, evidence: "structured category metadata" }]);
+  assert.equal(isGenovaCategory("theatre-performance"), true);
+  assert.equal(isGenovaCategory("date-night"), false);
+  assert.deepEqual(normalizeCategorySuggestions(null), []);
 });
 
 test("admin can restore only the bounded, fictional fixture set", async () => {

@@ -33,6 +33,11 @@ test('admin page links to the calendar, labels the owner account, and exposes no
   assert.match(script, /genova_event_fact_audit/);
   assert.match(script, /Approve for publishing/);
   assert.match(script, /To approve or publish, add:/);
+  assert.match(script, /category_suggestions/);
+  assert.match(script, /Low confidence/);
+  assert.match(script, /type = "radio"/);
+  assert.match(script, /No category selected/);
+  assert.match(script, /isGenovaCategory/);
   assert.match(script, /normalized_url = normalizedEventUrl/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /Remove demo events/);

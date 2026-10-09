@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fromRomeInput, toRomeInput, fromRomeDateInput, toRomeDateInput, GENOVA_CATEGORIES, validateDemoEvents } from "./genova-admin-utils.mjs";
+import { fromRomeInput, toRomeInput, fromRomeDateInput, toRomeDateInput, GENOVA_CATEGORIES, normalizeCategorySuggestions, isGenovaCategory, validateDemoEvents } from "./genova-admin-utils.mjs";
 
 const signInPanel = document.querySelector("#sign-in-panel");
 const adminPanel = document.querySelector("#admin-panel");
@@ -117,21 +117,57 @@ function fieldLabel(labelText, control, name) {
   label.append(control);
   return label;
 }
-function categorySelect(category) {
-  const select = document.createElement("select");
-  select.name = "category";
-  const unknown = document.createElement("option");
-  unknown.value = "";
-  unknown.textContent = "Choose a category";
-  select.append(unknown);
-  for (const [key, label] of GENOVA_CATEGORIES) {
-    const option = document.createElement("option");
-    option.value = key;
-    option.textContent = label;
-    select.append(option);
+function categoryChoices(event) {
+  const fieldset = document.createElement("fieldset");
+  fieldset.className = "category-choices";
+  const legend = document.createElement("legend");
+  legend.textContent = "Primary event category";
+  fieldset.append(legend);
+  const suggestions = normalizeCategorySuggestions(event.category_suggestions);
+  const suggestedByKey = new Map(suggestions.map((item) => [item.category, item]));
+  const selected = isGenovaCategory(event.category) ? event.category : suggestions[0]?.category;
+  if (!selected) {
+    const empty = document.createElement("label");
+    empty.className = "category-choice";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "category";
+    input.value = "";
+    input.checked = true;
+    const label = document.createElement("span");
+    label.className = "category-choice-name";
+    label.textContent = "No category selected";
+    empty.append(input, label);
+    fieldset.append(empty);
   }
-  select.value = category || "";
-  return select;
+  for (const [key, label] of GENOVA_CATEGORIES) {
+    const row = document.createElement("label");
+    row.className = suggestedByKey.has(key) ? "category-choice is-suggested" : "category-choice";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "category";
+    input.value = key;
+    input.checked = key === selected;
+    const nameText = document.createElement("span");
+    nameText.className = "category-choice-name";
+    nameText.textContent = label;
+    row.append(input, nameText);
+    const suggestion = suggestedByKey.get(key);
+    if (suggestion) {
+      const detail = document.createElement("span");
+      detail.className = suggestion.confidence < 0.5 ? "category-choice-evidence is-low-confidence" : "category-choice-evidence";
+      detail.textContent = `${suggestion.confidence < 0.5 ? "Low confidence · " : ""}${Math.round(suggestion.confidence * 100)}% confidence · ${suggestion.evidence}`;
+      row.append(detail);
+    }
+    fieldset.append(row);
+  }
+  if (!suggestions.length) {
+    const note = document.createElement("p");
+    note.className = "category-no-suggestion";
+    note.textContent = "No category suggestion is available. Choose the best supported category to continue review.";
+    fieldset.prepend(note);
+  }
+  return fieldset;
 }
 function normalizedEventUrl(value) {
   const url = new URL(value);
@@ -207,7 +243,7 @@ function renderEventCard(event, container) {
     allDayValue.value = event.is_all_day ? "true" : "false";
     form.append(allDayValue);
     form.append(fieldLabel("Venue / location", Object.assign(document.createElement("input"), { type: "text", value: event.location || "" }), "location"));
-    form.append(fieldLabel("Category", categorySelect(event.category), "category"));
+    form.append(categoryChoices(event));
     form.append(fieldLabel("Original source link", Object.assign(document.createElement("input"), { type: "url", value: event.direct_url, required: true }), "direct_url"));
     const tagWrap = document.createElement("label");
     tagWrap.className = "tag-option";
@@ -220,7 +256,7 @@ function renderEventCard(event, container) {
     const evidence = document.createElement("p");
     evidence.className = "event-evidence";
     const lastSeen = event.last_seen ? ` Last seen: ${formatTime(event.last_seen)}.` : "";
-    evidence.textContent = `Category confidence: ${event.category_confidence == null ? "not provided" : `${Math.round(Number(event.category_confidence) * 100)}%`}. ${event.evidence_note || "No evidence note."}${lastSeen}`;
+    evidence.textContent = `${event.evidence_note || "No event extraction evidence note."}${lastSeen}`;
     form.append(evidence);
     const missing = missingReviewDetails(event);
     if (missing.length) {
@@ -340,7 +376,8 @@ async function saveEventEdits(form) {
     setMessage(eventReviewMessage, "The end must be after the start.", "error");
     return;
   }
-  const category = String(data.get("category") || "") || null;
+  const categoryValue = String(data.get("category") || "");
+  const category = isGenovaCategory(categoryValue) ? categoryValue : null;
   const patch = {
     title: String(data.get("title") || "").trim(), start_time: startTime, end_time: endTime, is_all_day: isAllDay,
     location: String(data.get("location") || "").trim() || null,

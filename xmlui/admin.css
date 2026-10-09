@@ -169,7 +169,17 @@ td { color: #29443a; }
 .review-badge { padding: 5px 9px; border-radius: 999px; color: #315447; background: #e6efe8; font-size: .76rem; font-weight: 750; text-transform: capitalize; white-space: nowrap; }
 .event-edit-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: none; margin-top: 14px; }
 .event-edit-form > label { display: grid; gap: 6px; margin: 0; }
+.category-choices { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 14px; border: 1px solid #d9e2dc; border-radius: 10px; }
+.category-choices legend { padding: 0 5px; color: #334b42; font-size: .9rem; font-weight: 750; }
+.category-choice { display: grid; grid-template-columns: 20px 1fr; align-items: start; gap: 2px 9px; margin: 0; padding: 9px; border: 1px solid #d9e2dc; border-radius: 9px; background: #fff; cursor: pointer; }
+.category-choice.is-suggested { border-color: #91b59f; background: #f0f7f1; }
+.category-choice input { grid-row: span 2; width: 18px; min-height: 18px; margin: 2px 0 0; accent-color: #194b3a; }
+.category-choice-name { font-size: .84rem; }
+.category-choice-evidence { color: #53685e; font-size: .73rem; font-weight: 500; line-height: 1.4; }
+.category-choice-evidence.is-low-confidence { color: #8b4a20; }
+.category-no-suggestion { grid-column: 1 / -1; margin: 0; color: #53685e; font-size: .82rem; }
 .event-edit-form select, .event-edit-form input { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #bdcbc2; border-radius: 9px; color: #18322d; background: white; font: inherit; }
+.event-edit-form .category-choice input { width: 18px; min-height: 18px; padding: 0; border: 0; }
 .event-edit-form .review-source-link, .event-edit-form .event-evidence, .event-edit-form .event-requirements, .event-edit-form .event-actions, .event-edit-form .event-history { grid-column: 1 / -1; }
 .event-edit-form .review-source-link { overflow-wrap: anywhere; }
 .event-evidence, .event-requirements { margin: 0; color: #53685e; font-size: .87rem; }
@@ -187,5 +197,6 @@ td { color: #29443a; }
   .demo-management .panel-heading { flex-direction: column; }
   .event-review-card { padding: 14px; }
   .event-edit-form { grid-template-columns: 1fr; }
+  .category-choices { grid-template-columns: 1fr; grid-column: 1; }
   .event-edit-form .review-source-link, .event-edit-form .event-evidence, .event-edit-form .event-requirements, .event-edit-form .event-actions, .event-edit-form .event-history { grid-column: 1; }
 }
