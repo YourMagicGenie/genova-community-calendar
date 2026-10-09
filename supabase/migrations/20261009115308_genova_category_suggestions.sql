@@ -6,6 +6,50 @@ ALTER TABLE public.genova_event_facts
     CHECK (jsonb_typeof(category_suggestions) = 'array'
       AND jsonb_array_length(category_suggestions) <= 3);
 
+-- Extend the already field-limited admin queue without reverting #102's
+-- expiration filtering or bypassing its security-invoker RLS boundary.
+DROP FUNCTION public.list_admin_genova_event_review_queue();
+CREATE FUNCTION public.list_admin_genova_event_review_queue()
+RETURNS TABLE (
+  id bigint,
+  source_uid text,
+  title text,
+  start_time timestamptz,
+  end_time timestamptz,
+  is_all_day boolean,
+  location text,
+  publisher_label text,
+  direct_url text,
+  category text,
+  category_confidence numeric,
+  category_suggestions jsonb,
+  tags text[],
+  review_status text,
+  evidence_note text,
+  last_seen timestamptz,
+  superseded_by bigint,
+  date_state text
+)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT e.id, e.source_uid, e.title, e.start_time, e.end_time, e.is_all_day,
+    e.location, e.publisher_label, e.direct_url, e.category,
+    e.category_confidence, e.category_suggestions, e.tags, e.review_status,
+    e.evidence_note, e.last_seen, e.superseded_by,
+    CASE WHEN e.start_time IS NULL THEN 'needs_date_extraction' ELSE 'current' END
+  FROM public.genova_event_facts e
+  WHERE e.review_status IN ('needs_review', 'validated', 'published')
+    AND e.superseded_by IS NULL
+    AND public.genova_occurrence_is_current(e.start_time, e.end_time, e.is_all_day)
+  ORDER BY e.start_time NULLS FIRST, e.id
+  LIMIT 100
+$$;
+REVOKE ALL ON FUNCTION public.list_admin_genova_event_review_queue() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.list_admin_genova_event_review_queue() TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.import_genova_luzzati_facts(p_feed_id bigint, p_events jsonb)
 RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 DECLARE changed integer;

@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(25);
+SELECT plan(26);
 
 SELECT has_function('public', 'genova_occurrence_is_current',
   ARRAY['timestamptz','timestamptz','boolean','timestamptz']::text[],
@@ -71,6 +71,10 @@ CROSS JOIN (VALUES
 WHERE f.city = 'genova' AND f.status = 'active'
   AND f.url = 'https://www.spazio-comune.org/categoria-prodotto/eventi/';
 
+UPDATE public.genova_event_facts SET category_suggestions =
+  '[{"category":"music","confidence":0.86,"evidence":"title keyword match"}]'::jsonb
+WHERE source_uid = 'issue102-current-review';
+
 UPDATE public.genova_event_facts SET review_status = 'published'
 WHERE source_uid IN ('issue102-expired-published', 'issue102-current-published');
 
@@ -87,6 +91,9 @@ SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001021
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000001021","role":"authenticated"}', true);
 SELECT is((SELECT count(*)::int FROM public.list_admin_genova_event_review_queue()), 4,
   'the admin queue includes current timed, current all-day, unknown-date, and current published events');
+SELECT is((SELECT category_suggestions->0->>'category' FROM public.list_admin_genova_event_review_queue()
+  WHERE source_uid = 'issue102-current-review'), 'music',
+  'the expiration-filtered admin queue returns persisted category suggestions');
 SELECT is((SELECT count(*)::int FROM public.list_admin_genova_event_review_queue() WHERE date_state = 'needs_date_extraction'), 1,
   'unknown dates are clearly separated for extraction');
 SELECT is((SELECT count(*)::int FROM public.list_admin_genova_event_review_queue() WHERE source_uid = 'issue102-expired-review'), 0,
