@@ -126,6 +126,9 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
   .site-header { padding: .85rem 1rem; }
   .brand { gap: .5rem; font-size: .9rem; }
   .timezone { font-size: .76rem; }
+  .site-nav { gap: .5rem; }
+  .site-nav a { font-size: .82rem; }
+  .site-nav .timezone { font-size: .72rem; }
   main { width: min(100% - 1.25rem, 58rem); padding-top: 1.7rem; }
   .controls { display: grid; grid-template-columns: 1fr 1fr; padding: .8rem; }
   .controls label { min-width: 0; }
@@ -241,3 +244,6 @@ footer { padding: 1.2rem 1rem; border-top: 1px solid var(--line); color: var(--m
   .calendar-day-overflow .calendar-event-source,
   .calendar-day-overflow .calendar-event-categories { display: block; }
 }
+
+.site-nav { display: flex; align-items: center; gap: 1rem; }
+.site-nav a { color: white; font-size: .9rem; font-weight: 750; text-underline-offset: .18em; }

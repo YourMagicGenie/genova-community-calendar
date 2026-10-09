@@ -112,14 +112,22 @@
     return events;
   }
 
-  async function loadSampleEvents(fetcher, categoryTaxonomy = taxonomy) {
-    if (typeof fetcher !== 'function') throw new Error('Sample events could not be loaded.');
+  async function loadSampleEvents(fetcher, categoryTaxonomy = taxonomy, config = null) {
+    if (typeof fetcher !== 'function' || typeof config?.supabaseUrl !== 'string' ||
+        typeof config?.supabasePublishableKey !== 'string') {
+      throw new Error('Demo calendar settings could not be loaded.');
+    }
     try {
-      const response = await fetcher('sample-events.json', { cache: 'no-store' });
-      if (!response || !response.ok) throw new Error('Fixture request failed.');
+      const response = await fetcher(config.supabaseUrl.replace(/\/$/, '') + '/rest/v1/rpc/list_genova_demo_events', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${config.supabasePublishableKey}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      if (!response || !response.ok) throw new Error('Demo fixture request failed.');
       return validateSampleEvents(await response.json(), categoryTaxonomy);
     } catch (_) {
-      throw new Error('Sample events could not be loaded. Reload the preview or report the broken sample file.');
+      throw new Error('Demo events could not be loaded. Check the connection and reload the calendar.');
     }
   }
 
@@ -403,7 +411,14 @@
       const categoryTaxonomy = await loadTaxonomy(fetcher);
       buildCategoryFilters(document, categoryFilterContainer, categoryTaxonomy.categories.map((category) => category.key));
       dateNightFilter.textContent = tagLabel('date-night');
-      const events = await loadSampleEvents(fetcher, categoryTaxonomy);
+      const configResponse = await fetcher('config.json', { cache: 'no-store' });
+      const configFile = configResponse && configResponse.ok ? await configResponse.json() : null;
+      const config = configFile?.appGlobals;
+      if (!config || typeof config.supabaseUrl !== 'string' ||
+          typeof config.supabasePublishableKey !== 'string' || !config.supabasePublishableKey.startsWith('sb_publishable_')) {
+        throw new Error('Demo calendar connection is not configured.');
+      }
+      const events = await loadSampleEvents(fetcher, categoryTaxonomy, config);
       const categoryFilters = [...document.querySelectorAll('input[name="category-filter"]')];
       function render() {
         const now = new Date();

@@ -71,7 +71,7 @@ jobs:
         run: node scripts/bench_collapse_long.js
 
       - name: Run Genova sample preview tests
-        run: node --test tests/sample-preview.test.js
+        run: node --test tests/sample-preview.test.js tests/genova-admin-utils.test.mjs
 
       - name: Run load-events authorization tests
         run: node --test tests/load-events-protection.test.mjs

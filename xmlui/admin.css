@@ -153,3 +153,37 @@ td { color: #29443a; }
 .submission-card .actions { margin: 10px 0 0; }
 
 .review-section{margin-top:32px;padding-top:28px;border-top:1px solid #d9e2dc}.review-section>p{max-width:70ch;color:#54675f}.review-source-link{color:#19533f;font-size:.78rem;font-weight:700}.event-actions{display:flex;gap:8px;flex-wrap:wrap}.event-actions button{min-height:36px;padding:7px 10px;font-size:.78rem;white-space:nowrap}
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.demo-management { margin-top: 30px; padding: 20px; border: 1px solid #ceddd2; border-radius: 14px; background: #f3f8f4; }
+.demo-count { margin: 0; color: #315447; font-weight: 750; }
+.button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border: 1px solid #cbd7cf; border-radius: 10px; color: #294b3d; text-decoration: none; font-weight: 750; }
+.button-danger { border-color: #9a382c; background: #9a382c; }
+.button-danger:hover:not(:disabled) { background: #7c2e24; }
+.event-card-list { display: grid; gap: 16px; }
+.event-review-card { padding: 18px; border: 1px solid #d9e2dc; border-radius: 14px; background: #fbfcfb; }
+.event-review-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.event-review-head h3 { margin: 0; font-size: 1.1rem; }
+.review-badge { padding: 5px 9px; border-radius: 999px; color: #315447; background: #e6efe8; font-size: .76rem; font-weight: 750; text-transform: capitalize; white-space: nowrap; }
+.event-edit-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: none; margin-top: 14px; }
+.event-edit-form > label { display: grid; gap: 6px; margin: 0; }
+.event-edit-form select, .event-edit-form input { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #bdcbc2; border-radius: 9px; color: #18322d; background: white; font: inherit; }
+.event-edit-form .review-source-link, .event-edit-form .event-evidence, .event-edit-form .event-requirements, .event-edit-form .event-actions, .event-edit-form .event-history { grid-column: 1 / -1; }
+.event-edit-form .review-source-link { overflow-wrap: anywhere; }
+.event-evidence, .event-requirements { margin: 0; color: #53685e; font-size: .87rem; }
+.event-requirements { padding: 10px 12px; border-radius: 9px; color: #743e32; background: #f8e8e2; }
+.event-edit-form .tag-option { display: flex; align-items: center; gap: 8px; }
+.event-edit-form .tag-option input { width: 20px; min-height: 20px; }
+.event-edit-form .event-actions { margin: 0; }
+.event-history { padding: 10px 12px; border-left: 3px solid #cbd7cf; background: #f5f8f5; }
+.audit-entry + .audit-entry { margin-top: 12px; padding-top: 12px; border-top: 1px solid #d9e2dc; }
+.audit-entry p { margin-bottom: 4px; font-weight: 700; }
+.audit-entry ul { margin: 0; padding-left: 20px; }
+@media (max-width: 620px) {
+  .topbar-actions { align-items: flex-end; flex-direction: column; gap: 6px; }
+  .demo-management { padding: 16px; }
+  .demo-management .panel-heading { flex-direction: column; }
+  .event-review-card { padding: 14px; }
+  .event-edit-form { grid-template-columns: 1fr; }
+  .event-edit-form .review-source-link, .event-edit-form .event-evidence, .event-edit-form .event-requirements, .event-edit-form .event-actions, .event-edit-form .event-history { grid-column: 1; }
+}

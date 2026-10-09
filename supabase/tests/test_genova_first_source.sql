@@ -51,17 +51,19 @@ VALUES ('00000000-0000-0000-0000-000000000051')
 ON CONFLICT (user_id) DO NOTHING;
 
 INSERT INTO public.genova_event_facts (
-  feed_id, source_uid, title, start_time, location, publisher_label,
+  feed_id, source_uid, title, start_time, location, category, publisher_label,
   direct_url, normalized_url, review_status
 )
 SELECT id, 'issue51-published', 'Published fixture',
        '2026-10-07T19:00:00+02:00', 'Giardini Luzzati - Spazio Comune',
+       'community-social',
        'Giardini Luzzati / Spazio Comune',
        'https://www.spazio-comune.org/prodotto/published-fixture/',
        'https://www.spazio-comune.org/prodotto/published-fixture/',
-       'published'
+       'validated'
 FROM public.feeds
 WHERE city = 'genova' AND url = 'https://www.spazio-comune.org/categoria-prodotto/eventi/';
+UPDATE public.genova_event_facts SET review_status='published' WHERE source_uid='issue51-published';
 
 INSERT INTO public.genova_event_facts (
   feed_id, source_uid, title, start_time, publisher_label,
