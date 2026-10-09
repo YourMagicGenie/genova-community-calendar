@@ -15,7 +15,6 @@ import json
 import re
 import sys
 import time
-import unicodedata
 from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -35,6 +34,7 @@ from scripts.probe_giardini_luzzati import (
     _http_get,
     _robots_rules,
 )
+from scripts.genova_taxonomy import suggest_categories
 
 INDEX_URL = "https://www.spazio-comune.org/categoria-prodotto/eventi/"
 PUBLISHER_URL = "https://www.spazio-comune.org/"
@@ -63,18 +63,6 @@ PARTIAL_DATE_RE = re.compile(
     r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+(20\d{2}))?\b", re.I,
 )
 CATEGORY_LINE_RE = re.compile(r"(?:categoria|category)\s*[:：]\s*([^|.;\n]+)", re.I)
-CATEGORY_KEYWORDS = {
-    "music": ("musica", "musicale", "concerto", "concerti", "jazz", "dj set", "live music"),
-    "theatre-performance": ("teatro", "spettacolo", "performance", "danza", "cabaret", "commedia"),
-    "art-exhibitions": ("mostra", "mostre", "esposizione", "arte", "fotografia", "cinema", "cinematografico", "cinematografica", "proiezione", "documentario", "documentary", "film"),
-    "sports": ("sport", "partita", "torneo", "fitness", "allenamento", "gara"),
-    "food-drink": ("degustazione", "cucina", "vino", "birra", "aperitivo", "cena", "street food"),
-    "festivals-markets": ("festival", "mercato", "mercatino", "fiera", "sagra"),
-    "talks-workshops": ("laboratorio", "workshop", "corso", "conferenza", "presentazione", "poesia", "lettura", "libro", "book", "autore", "scrittore", "firma copie", "dibattito"),
-    "family": ("bambini", "famiglie", "per bambini", "family", "kids"),
-    "outdoors-tours": ("escursione", "trekking", "passeggiata", "visita guidata", "tour", "natura"),
-    "community-social": ("comunita", "socialita", "giochi", "ritrovo", "social gathering"),
-}
 MONTHS = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
     "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12,
@@ -315,6 +303,9 @@ def parse_index(
             continue
         venue_match = VENUE_RE.search(text)
         venue = " ".join(venue_match.group(0).split()) if venue_match else None
+        suggestions = suggest_categories(title=title, text=text, venue=venue)
+        category = suggestions[0]["category"] if suggestions else None
+        category_confidence = suggestions[0]["confidence"] if suggestions else None
         starts: list[str | None] = [None]
         if date_match:
             day = int(date_match.group(1))
@@ -338,10 +329,12 @@ def parse_index(
                 "url": record["url"],
                 "normalized_url": normalized_url,
                 "source_uid": _source_uid(feed_id, normalized_url, start_time),
-                "category": None,
-                "category_confidence": None,
+                "category": category,
+                "category_confidence": category_confidence,
+                "category_suggestions": suggestions,
                 "review_status": "needs_review",
-                "evidence_note": "date_time=index_card" if start_time else "index_card_checked; date_time=unknown",
+                "evidence_note": ("date_time=index_card; " if start_time else "index_card_checked; date_time=unknown; ")
+                    + ("category=shared taxonomy suggestion" if category else "category=unavailable"),
             })
     if diagnostics is not None:
         diagnostics.update(counts)
@@ -459,34 +452,6 @@ def _category(value):
     return None, None
 
 
-def _fold_text(value):
-    decomposed = unicodedata.normalize("NFKD", value.casefold())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
-def _infer_category(title, description):
-    """Conservative Italian/English keyword classification from source wording."""
-    title_text, description_text = _fold_text(title or ""), _fold_text(description or "")
-    scores = {}
-    title_hits = set()
-    for category, phrases in CATEGORY_KEYWORDS.items():
-        for phrase in phrases:
-            needle = _fold_text(phrase)
-            pattern = re.compile(r"(?<!\w)" + re.escape(needle) + r"(?!\w)")
-            if pattern.search(title_text):
-                scores[category] = scores.get(category, 0) + 3
-                title_hits.add(category)
-            if pattern.search(description_text):
-                scores[category] = scores.get(category, 0) + 1
-    if not scores:
-        return None, None
-    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
-    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-        return None, None
-    category = ranked[0][0]
-    return category, (0.82 if category in title_hits else 0.76)
-
-
 def _metadata_time(value):
     if not isinstance(value, str):
         return None
@@ -516,6 +481,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     scoped_has_time = bool(TIME_RE.search(scoped_text))
     text = scoped_text if scoped_has_date and scoped_has_time else page_text
     facts = []
+    structured_category_labels = []
     for raw in parser.jsonld:
         try:
             data = json.loads(raw)
@@ -531,7 +497,12 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
                 location = location.get("name")
             if isinstance(location, list):
                 location = location[0] if len(location) == 1 and isinstance(location[0], str) else None
-            category, confidence = _category(node.get("category") or node.get("keywords"))
+            raw_categories = node.get("category") or node.get("keywords")
+            if isinstance(raw_categories, str):
+                structured_category_labels.extend(part.strip() for part in re.split(r"[,;|]", raw_categories) if part.strip())
+            elif isinstance(raw_categories, list):
+                structured_category_labels.extend(item for item in raw_categories if isinstance(item, str) and item.strip())
+            category, confidence = _category(raw_categories)
             facts.append((start, end, location if isinstance(location, str) else None, category, confidence, "structured_event_metadata"))
     meta = parser.meta
     def meta_first(*names):
@@ -543,7 +514,9 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     meta_start = _metadata_time(meta_first("event:start_time", "event:start_date", "startdate", "startdatetime", "start_time"))
     meta_end = _metadata_time(meta_first("event:end_time", "event:end_date", "enddate", "enddatetime", "end_time"))
     meta_location = meta_first("event:location", "location", "place:location")
-    meta_category, meta_confidence = _category(meta_first("article:section", "category", "keywords"))
+    section = meta_first("article:section")
+    meta_category_label = meta_first("category", "keywords")
+    meta_category, meta_confidence = _category(meta_category_label)
     if not facts and meta_start:
         facts.append((meta_start, meta_end, meta_location, meta_category, meta_confidence, "page_metadata"))
     if not facts:
@@ -566,47 +539,54 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     venue_match = VENUE_RE.search(text)
     venue = " ".join(venue_match.group(0).split()) if venue_match else meta_location
     category_match = CATEGORY_LINE_RE.search(text)
-    explicit_category, explicit_confidence = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
-    if explicit_category and category_match:
-        explicit_confidence = 0.85
-    category_evidence = (
-        "source_category_label" if category_match
-        else "category_metadata" if meta_category
-        else None
+    source_category, _ = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
+    description_parts = (
+        parser.meta.get("description", [])
+        + parser.meta.get("og:description", [])
+        + parser.scoped_text
     )
-    if not explicit_category:
-        description_parts = (
-            parser.meta.get("description", [])
-            + parser.meta.get("og:description", [])
-            + parser.scoped_text
-        )
-        explicit_category, explicit_confidence = _infer_category(
-            next(iter(parser.h1), None) or index_event["title"],
-            " ".join(description_parts),
-        )
-        if explicit_category:
-            category_evidence = "title_or_description_keywords"
+    title = next(iter(parser.h1), None) or index_event["title"]
+    category_labels = [*structured_category_labels, *(category for *_, category, __, ___ in facts if category)]
+    if source_category:
+        category_labels.append(source_category)
+    if meta_category_label:
+        category_labels.extend(part.strip() for part in re.split(r"[,;|]", meta_category_label) if part.strip())
+    if category_match:
+        category_labels.extend(part.strip() for part in re.split(r"[,;|]", category_match.group(1)) if part.strip())
+    suggestion_venue = venue_match.group(0) if venue_match else meta_location
+    suggestions = suggest_categories(
+        title=title,
+        text=" ".join(description_parts),
+        section=section,
+        venue=suggestion_venue,
+        structured_categories=category_labels,
+    )
     if not facts:
         facts = [(None, None, None, None, None, None)]
     output = []
-    title = next(iter(parser.h1), None) or index_event["title"]
     seen_starts = set()
     for start, end, location, category, confidence, source in facts:
         if start in seen_starts:
             continue
         seen_starts.add(start)
         location_method = source if location else "page_metadata" if meta_location and not venue_match else "visible_event_text"
-        category_method = source if category else category_evidence
         location = location or venue
-        category = category or explicit_category
-        confidence = confidence or explicit_confidence
+        event_suggestions = list(suggestions)
+        if category and not any(item["category"] == category for item in event_suggestions):
+            event_suggestions.insert(0, {
+                "category": category,
+                "confidence": confidence or 0.95,
+                "evidence": "structured event metadata",
+            })
+        category = event_suggestions[0]["category"] if event_suggestions else category
+        confidence = event_suggestions[0]["confidence"] if event_suggestions else confidence
         evidence = []
         if source:
             evidence.append(f"date_time={source}")
         if location:
             evidence.append(f"location={location_method}")
         if category:
-            evidence.append(f"category={category_method or 'event_metadata'}")
+            evidence.append("category=shared taxonomy suggestion")
         output.append({
             "feed_id": feed_id, "title": title, "start_time": start, "end_time": end,
             "is_all_day": False,
@@ -614,6 +594,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
             "url": index_event["url"], "normalized_url": index_event["normalized_url"],
             "source_uid": _source_uid(feed_id, index_event["normalized_url"], start),
             "category": category, "category_confidence": confidence,
+            "category_suggestions": event_suggestions,
             "review_status": "needs_review",
             "evidence_note": "; ".join(evidence) or "detail_page_checked; facts not explicit",
         })
@@ -754,7 +735,7 @@ def collect(source: dict, get=_http_get, sleeper=time.sleep, detail_page_limit=D
                 events.extend(enriched)
             else:
                 for event in old:
-                    for key in ("location", "category", "category_confidence", "evidence_note"):
+                    for key in ("location", "category", "category_confidence", "category_suggestions", "evidence_note"):
                         value = next((row.get(key) for row in enriched if row.get(key)), None)
                         if value:
                             event[key] = value

@@ -19,9 +19,14 @@ HOST = "www.spazio-comune.org"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 EVENT_FIELDS = {
     "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-    "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note",
-    "is_all_day",
+    "normalized_url", "source_uid", "category", "category_confidence", "category_suggestions",
+    "review_status", "evidence_note",
 }
+GENOVA_CATEGORY_KEYS = {
+    "music", "theatre-performance", "art-exhibitions", "sports", "food-drink",
+    "festivals-markets", "talks-workshops", "family", "outdoors-tours", "community-social",
+}
+EVENT_FIELDS.add("is_all_day")
 
 
 def _iso_or_none(value, field):
@@ -88,6 +93,23 @@ def validate_report(report: dict) -> None:
         confidence = event.get("category_confidence")
         if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
             raise ValueError("category confidence must be between zero and one")
+        suggestions = event.get("category_suggestions", [])
+        if not isinstance(suggestions, list) or len(suggestions) > 3:
+            raise ValueError("category suggestions must be a list of at most three entries")
+        seen_categories = set()
+        for suggestion in suggestions:
+            if not isinstance(suggestion, dict) or set(suggestion) != {"category", "confidence", "evidence"}:
+                raise ValueError("category suggestion fields are invalid")
+            key = suggestion["category"]
+            score = suggestion["confidence"]
+            evidence = suggestion["evidence"]
+            if key not in GENOVA_CATEGORY_KEYS or key in seen_categories:
+                raise ValueError("category suggestion key is invalid or duplicated")
+            if isinstance(score, bool) or not isinstance(score, (int, float)) or not 0 <= score <= 1:
+                raise ValueError("category suggestion confidence must be between zero and one")
+            if not isinstance(evidence, str) or not evidence.strip() or len(evidence) > 160:
+                raise ValueError("category suggestion evidence must be a short summary")
+            seen_categories.add(key)
         evidence = event.get("evidence_note")
         if evidence is not None and (not isinstance(evidence, str) or len(evidence) > 240):
             raise ValueError("evidence note must be a short safe summary")

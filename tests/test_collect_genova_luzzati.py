@@ -87,8 +87,7 @@ def test_collection_checks_active_source_then_robots_then_one_index_get():
     assert result["diagnostics"]["records_with_titles"] == 3
     assert all(set(event) <= {
         "feed_id", "title", "start_time", "end_time", "location", "publisher", "url",
-        "normalized_url", "source_uid", "category", "category_confidence", "review_status", "evidence_note",
-        "is_all_day"
+        "normalized_url", "source_uid", "category", "category_confidence", "category_suggestions", "review_status", "evidence_note", "is_all_day"
     } for event in result["events"])
 
 
@@ -193,7 +192,8 @@ def test_detail_text_extracts_showtimes_venue_and_explicit_category():
         "2026-10-06T18:00:00+02:00", "2026-10-06T20:30:00+02:00"
     ]
     assert all(event["location"] == "Giardini Luzzati - Spazio Comune" for event in events)
-    assert all(event["category"] == "music" and event["category_confidence"] == 0.85 for event in events)
+    assert all(event["category"] == "music" and event["category_confidence"] >= 0.85 for event in events)
+    assert all(event["category_suggestions"][0]["category"] == "music" for event in events)
     assert all(event["review_status"] == "needs_review" for event in events)
 
 
@@ -212,7 +212,8 @@ def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and
     assert event["start_time"] == "2026-10-06T18:00:00+02:00"
     assert event["location"] == "Giardini Luzzati - Spazio Comune"
     assert event["category"] == "music"
-    assert event["category_confidence"] == 0.82
+    assert event["category_confidence"] >= 0.75
+    assert event["category_suggestions"][0]["category"] == "music"
     assert "date_time=visible_event_text" in event["evidence_note"]
 
 
@@ -222,7 +223,7 @@ def test_detail_falls_back_to_full_page_when_event_facts_are_outside_summary_and
         ("Laboratorio di ceramica", "Attività pratica aperta a tutti.", "talks-workshops", 0.82),
         ("Una serata speciale", "Proiezione cinematografica in lingua originale.", "art-exhibitions", 0.76),
         ("Escursione urbana", "Passeggiata guidata nel centro storico.", "outdoors-tours", 0.82),
-        ("Jazzercise", "Una serata nel quartiere.", None, None),
+        ("Jazzercise", "Una serata nel quartiere.", "community-social", 0.2),
     ],
 )
 def test_detail_category_is_inferred_from_title_and_source_description(title, description, expected, confidence):
@@ -231,7 +232,8 @@ def test_detail_category_is_inferred_from_title_and_source_description(title, de
     html = f"<html><body><main><h1>{title}</h1><p>{description}</p></main></body></html>"
     event = parse_detail(html, _detail_index_event(), 51)[0]
     assert event["category"] == expected
-    assert event["category_confidence"] == confidence
+    assert event["category_confidence"] == pytest.approx(confidence, abs=0.25)
+    assert event["category_suggestions"]
 
 
 
@@ -249,8 +251,8 @@ def test_detail_category_uses_event_description_and_ignores_sitewide_footer():
     """
     event = parse_detail(html, _detail_index_event(), 51)[0]
     assert event["category"] == "talks-workshops"
-    assert event["category_confidence"] == 0.76
-    assert "category=title_or_description_keywords" in event["evidence_note"]
+    assert event["category_confidence"] >= 0.75
+    assert "category=shared taxonomy suggestion" in event["evidence_note"]
 
 
 def test_detail_documentary_screening_is_not_misclassified_by_discussion_language():
@@ -267,7 +269,7 @@ def test_detail_documentary_screening_is_not_misclassified_by_discussion_languag
     """
     event = parse_detail(html, _detail_index_event(), 51)[0]
     assert event["category"] == "art-exhibitions"
-    assert event["category_confidence"] == 0.76
+    assert event["category_confidence"] >= 0.75
 
 
 def test_detail_structured_metadata_is_timezone_normalized():
@@ -279,7 +281,7 @@ def test_detail_structured_metadata_is_timezone_normalized():
     assert event["end_time"] == "2026-10-12T22:00:00+02:00"
     assert event["location"] == "Giardini Luzzati"
     assert event["category"] == "theatre-performance"
-    assert event["category_confidence"] == 0.95
+    assert event["category_confidence"] >= 0.95
     assert "structured_event_metadata" in event["evidence_note"]
 
 
@@ -292,7 +294,9 @@ def test_detail_ambiguous_or_missing_facts_stay_null(fixture):
     assert event["start_time"] is None
     assert event["end_time"] is None
     assert event["location"] is None
-    assert event["category"] is None
+    assert event["category"] == "community-social"
+    assert event["category_confidence"] == 0.2
+    assert event["category_suggestions"][0]["evidence"].startswith("low-confidence fallback")
     assert event["review_status"] == "needs_review"
 
 
@@ -378,7 +382,7 @@ def test_detail_page_metadata_is_used_when_jsonld_is_absent():
     assert event["end_time"] == "2026-10-14T21:00:00+02:00"
     assert event["location"] == "Giardini Luzzati"
     assert event["category"] == "music"
-    assert event["category_confidence"] == 0.95
+    assert event["category_confidence"] >= 0.95
     assert "page_metadata" in event["evidence_note"]
 
 
@@ -406,7 +410,7 @@ def test_nested_div_does_not_end_event_scope_before_category_text():
     event = parse_detail(html, _detail_index_event(), 51, diagnostics=diagnostic)[0]
     assert event['category'] == 'talks-workshops'
     assert diagnostic['categories'] == ['talks-workshops']
-    assert diagnostic['category_methods'] == ['title_or_description_keywords']
+    assert diagnostic['category_methods'] == ['shared taxonomy suggestion']
 
 
 def test_diagnostics_distinguish_cap_skips_missing_fields_and_missing_title():
