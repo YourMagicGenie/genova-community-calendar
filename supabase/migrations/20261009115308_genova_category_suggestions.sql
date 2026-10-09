@@ -67,7 +67,8 @@ BEGIN
       OR event ->> 'review_status' IS DISTINCT FROM 'needs_review'
       OR event ->> 'source_uid' NOT LIKE 'genova-luzzati:%'
       OR event ->> 'normalized_url' NOT LIKE 'https://www.spazio-comune.org/prodotto/%'
-      OR event ->> 'url' NOT LIKE 'https://www.spazio-comune.org/prodotto/%') THEN
+      OR event ->> 'url' NOT LIKE 'https://www.spazio-comune.org/prodotto/%'
+      OR COALESCE(event ->> 'is_all_day', 'false') NOT IN ('true', 'false')) THEN
     RAISE EXCEPTION 'event facts do not match the trusted source/review contract';
   END IF;
   IF EXISTS (SELECT 1 FROM jsonb_array_elements(p_events) event
@@ -92,27 +93,34 @@ BEGIN
   END IF;
   LOCK TABLE public.genova_event_facts IN SHARE ROW EXCLUSIVE MODE;
   INSERT INTO public.genova_event_facts (
-    feed_id, source_uid, title, start_time, end_time, location, publisher_label,
-    direct_url, normalized_url, category, category_confidence, category_suggestions,
-    review_status, evidence_note
+    feed_id, source_uid, title, start_time, end_time, is_all_day, location,
+    publisher_label, direct_url, normalized_url, category, category_confidence,
+    category_suggestions, review_status, evidence_note
   )
   SELECT p_feed_id, event ->> 'source_uid', event ->> 'title',
     NULLIF(event ->> 'start_time','')::timestamptz,
-    NULLIF(event ->> 'end_time','')::timestamptz, NULLIF(event ->> 'location',''),
+    NULLIF(event ->> 'end_time','')::timestamptz,
+    COALESCE((event ->> 'is_all_day')::boolean, false), NULLIF(event ->> 'location',''),
     event ->> 'publisher', event ->> 'url', event ->> 'normalized_url',
     NULLIF(event ->> 'category',''), NULLIF(event ->> 'category_confidence','')::numeric,
     COALESCE(event -> 'category_suggestions', '[]'::jsonb),
     'needs_review', event ->> 'evidence_note'
   FROM jsonb_array_elements(p_events) event
-  WHERE NULLIF(event ->> 'start_time','') IS NOT NULL OR NOT EXISTS (
-    SELECT 1 FROM public.genova_event_facts known
-    WHERE known.feed_id = p_feed_id AND known.normalized_url = event ->> 'normalized_url'
-      AND known.start_time IS NOT NULL
-  )
+  WHERE public.genova_occurrence_is_current(
+      NULLIF(event ->> 'start_time','')::timestamptz,
+      NULLIF(event ->> 'end_time','')::timestamptz,
+      COALESCE((event ->> 'is_all_day')::boolean, false)
+    )
+    AND (NULLIF(event ->> 'start_time','') IS NOT NULL OR NOT EXISTS (
+      SELECT 1 FROM public.genova_event_facts known
+      WHERE known.feed_id = p_feed_id AND known.normalized_url = event ->> 'normalized_url'
+        AND known.start_time IS NOT NULL
+    ))
   ON CONFLICT (source_uid) DO UPDATE SET
     title = EXCLUDED.title,
     start_time = COALESCE(EXCLUDED.start_time, public.genova_event_facts.start_time),
     end_time = COALESCE(EXCLUDED.end_time, public.genova_event_facts.end_time),
+    is_all_day = EXCLUDED.is_all_day,
     location = COALESCE(EXCLUDED.location, public.genova_event_facts.location),
     publisher_label = EXCLUDED.publisher_label, direct_url = EXCLUDED.direct_url,
     category = COALESCE(EXCLUDED.category, public.genova_event_facts.category),
