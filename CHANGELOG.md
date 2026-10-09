@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add an offline, coordinate-aware bulletin PDF parser that extracts reviewable event facts with field evidence and shared category suggestions; the checked-in fixture is synthetic ([issue #98](https://github.com/YourMagicGenie/genova-community-calendar/issues/98)).
+
 - Add shared, offline Genova category suggestions with confidence and concise evidence for event-page extraction; persist suggestions privately for review.
 
 - Prefill admin event review with selectable shared category suggestions and visible confidence/evidence; reviewers can correct a primary category using the stable taxonomy without free-text entry.
