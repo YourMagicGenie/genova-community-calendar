@@ -123,7 +123,11 @@ SELECT is(public.import_genova_luzzati_facts(
     'location', 'Test venue', 'publisher', 'Giardini Luzzati',
     'url', 'https://www.spazio-comune.org/prodotto/issue102-expired-import/',
     'normalized_url', 'https://www.spazio-comune.org/prodotto/issue102-expired-import/',
-    'review_status', 'needs_review'))
+    'review_status', 'needs_review',
+    'source_metadata', jsonb_build_object('kind','source_page',
+      'source_url','https://www.spazio-comune.org/prodotto/issue102-expired-import/',
+      'field_evidence',jsonb_build_object(), 'unresolved_reasons',jsonb_build_array(),
+      'date_precision','day', 'partial_dates',jsonb_build_array())))
 ), 0, 'the importer does not persist a past candidate into active review');
 SELECT is((SELECT count(*)::int FROM public.genova_event_facts WHERE source_uid = 'genova-luzzati:issue102-expired-import'), 0,
   'a newly observed expired event is not stored as a new review candidate');
