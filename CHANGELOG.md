@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add bounded monthly-bulletin PDF link discovery with robots checks, month evidence, and no PDF download; live Visit Genoa checks still require the approved-source state ([issue #99](https://github.com/YourMagicGenie/genova-community-calendar/issues/99)).
+
 - Add an offline, coordinate-aware bulletin PDF parser that extracts reviewable event facts with field evidence and shared category suggestions; the checked-in fixture is synthetic ([issue #98](https://github.com/YourMagicGenie/genova-community-calendar/issues/98)).
 
 - Add shared, offline Genova category suggestions with confidence and concise evidence for event-page extraction; persist suggestions privately for review.
