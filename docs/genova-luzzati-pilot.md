@@ -42,12 +42,20 @@ is enabled. The count inspection also reports URLs that have both undated and
 dated facts, without changing or merging them. One URL can have multiple
 valid occurrences. Reconciliation remains separate work.
 
-After checks and merge, use **Run manual Giardini Luzzati pilot** on `main`
-with `detail_page_limit=12` for the bounded full-detail experiment. Its existing
-hosted schema/source preflight still runs before any source request. Review
-the artifact and possible stale variants before considering publication or
-a second-source comparison. A successful HTTP response or passing offline
-test alone does not establish live extraction accuracy.
+The full-detail experiment (run `37771193165`) already opened all 12 candidates
+in 14 requests. It produced five complete timestamps, all historical as of
+2026-10-08, seven yearless dates (three also without a recognized time), and
+seven locations from visible-page fallback. A known 6 October listing
+normalized to 18:00 `Europe/Rome`. Do not repeat the live crawl only to
+reproduce these counts; improve year-context resolution and make fallback
+provenance explicit in the offline-tested parser instead.
+
+For a future, separately justified pilot, use **Run manual Giardini Luzzati
+pilot** on `main` with an explicit `detail_page_limit` from 0 to 12. Its
+hosted schema/source preflight runs before any source request. Inspect the
+diagnostic artifact before considering publication or a second-source
+comparison. A successful HTTP response or passing offline test alone does
+not establish live extraction accuracy.
 
 ## Occurrence reconciliation (#93)
 

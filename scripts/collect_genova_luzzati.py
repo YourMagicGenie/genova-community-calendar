@@ -71,8 +71,26 @@ DATE_RE = re.compile(
     r"\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(20\d{2})\b",
     re.I,
 )
-TIME_RE = re.compile(r"(?:\bore\s*|\bh\s*[:.]?\s*)([01]?\d|2[0-3])[:.]([0-5]\d)\b", re.I)
+TIME_RE = re.compile(r"(?:\b(?:ore|alle)\s*|\bh\s*[:.]?\s*)([01]?\d|2[0-3])(?:[:.]\s*([0-5]\d))?\b", re.I)
 VENUE_RE = re.compile(r"Giardini\s+Luzzati(?:\s*[-–—]\s*Spazio\s+Comune|\s*\(Area\s+Archeologica\))?", re.I)
+YEAR_CONTEXT_RE = re.compile(
+    r"\b(?:programma(?:zione)?|calendario|eventi|stagione|rassegna|festival|"
+    r"gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|"
+    r"ottobre|novembre|dicembre)\s+(20\d{2})\b",
+    re.I,
+)
+
+
+def _date_year_context(text: str) -> int | None:
+    """Return a year only when a visible program/month heading makes it explicit."""
+    years = {int(match.group(1)) for match in YEAR_CONTEXT_RE.finditer(text)}
+    return next(iter(years)) if len(years) == 1 else None
+
+
+def _local_times(text: str) -> list[tuple[int, int]]:
+    return list(dict.fromkeys(
+        (int(hour), int(minute or "0")) for hour, minute in TIME_RE.findall(text)
+    ))
 
 
 def _normalize_url(value: str) -> str:
@@ -296,7 +314,7 @@ def parse_index(
         title = (record.get("title") or "").strip()
         text = record.get("text") or ""
         date_match = DATE_RE.search(text)
-        times = list(dict.fromkeys((int(h), int(m)) for h, m in TIME_RE.findall(text)))
+        times = _local_times(text)
         counts["records_with_dates"] += bool(date_match)
         counts["records_with_times"] += bool(times)
         if not title:
@@ -481,6 +499,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     scoped_has_time = bool(TIME_RE.search(scoped_text))
     text = scoped_text if scoped_has_date and scoped_has_time else page_text
     facts = []
+    year_context_used = False
     structured_category_labels = []
     for raw in parser.jsonld:
         try:
@@ -529,7 +548,18 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
                     dates.append(value)
             except ValueError:
                 continue
-        times = list(dict.fromkeys((int(h), int(m)) for h, m in TIME_RE.findall(text)))
+        times = _local_times(text)
+        partial_dates = list(PARTIAL_DATE_RE.finditer(text))
+        year_context = _date_year_context(text)
+        if not dates and len(partial_dates) == 1 and year_context is not None:
+            match = partial_dates[0]
+            try:
+                value = (year_context, MONTHS[match.group(2).casefold()], int(match.group(1)))
+                datetime(*value)
+                dates.append(value)
+                year_context_used = True
+            except ValueError:
+                pass
         if len(dates) == 1 and times:
             year, month, day = dates[0]
             facts = [
@@ -537,6 +567,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
                 for h, m in times
             ]
     venue_match = VENUE_RE.search(text)
+    scoped_venue_match = VENUE_RE.search(scoped_text)
     venue = " ".join(venue_match.group(0).split()) if venue_match else meta_location
     category_match = CATEGORY_LINE_RE.search(text)
     source_category, _ = _category(category_match.group(1)) if category_match else (meta_category, meta_confidence)
@@ -569,7 +600,10 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
         if start in seen_starts:
             continue
         seen_starts.add(start)
-        location_method = source if location else "page_metadata" if meta_location and not venue_match else "visible_event_text"
+        location_method = (
+            source if location else "page_metadata" if meta_location and not venue_match
+            else "visible_event_text" if scoped_venue_match else "visible_page_fallback"
+        )
         location = location or venue
         event_suggestions = list(suggestions)
         if category and not any(item["category"] == category for item in event_suggestions):
@@ -601,8 +635,11 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     if diagnostics is not None:
         date_matches = list(PARTIAL_DATE_RE.finditer(text))
         date_values = list(dict.fromkeys(match.group(0) for match in date_matches))
-        explicit_years = sorted({int(match.group(3)) for match in date_matches if match.group(3)})
-        local_times = list(dict.fromkeys(f"{int(h):02d}:{m}" for h, m in TIME_RE.findall(text)))
+        explicit_years = {int(match.group(3)) for match in date_matches if match.group(3)}
+        if year_context_used:
+            explicit_years.add(year_context)
+        explicit_years = sorted(explicit_years)
+        local_times = list(dict.fromkeys(f"{hour:02d}:{minute:02d}" for hour, minute in _local_times(text)))
         starts = [event["start_time"] for event in output if event["start_time"]]
         methods = sorted({source for *_, source in facts if source})
         if starts:
@@ -613,7 +650,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
         if not starts:
             if not date_matches:
                 reasons.append("no_date_on_page")
-            elif not explicit_years:
+            elif not explicit_years and _date_year_context(text) is None:
                 reasons.append("year_missing")
             elif len(date_values) > 1:
                 reasons.append("ambiguous_dates")
@@ -629,6 +666,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
             reasons.append("category_unsupported")
         diagnostics.update({
             "date_text": date_values, "explicit_years": explicit_years,
+            "year_context": "explicit_program_or_month_label" if year_context_used else None,
             "local_times": local_times, "normalized_starts": starts,
             "timezone": "Europe/Rome",
             "precision": "time" if starts else "date" if explicit_years and date_matches else "unknown_year" if date_matches else "unknown",
