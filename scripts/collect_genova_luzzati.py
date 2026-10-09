@@ -93,6 +93,67 @@ def _local_times(text: str) -> list[tuple[int, int]]:
     ))
 
 
+def _partial_source_metadata(text: str, source_url: str) -> dict:
+    """Keep short date/time clues from visible event text, never page copy."""
+    matches = list(PARTIAL_DATE_RE.finditer(text))[:12]
+    valid, partial, invalid = [], [], False
+    year_context_match = YEAR_CONTEXT_RE.search(text)
+    year_context = _date_year_context(text)
+    for match in matches:
+        day, month = int(match.group(1)), MONTHS[match.group(2).casefold()]
+        year = match.group(3)
+        try:
+            datetime(int(year), month, day) if year else datetime(2000, month, day)
+        except ValueError:
+            invalid = True
+            continue
+        valid.append(match.group(0)[:160])
+        if year is None and year_context is None:
+            partial.append({"day": day, "month": month})
+    times = list(TIME_RE.finditer(text))[:12]
+    years = {int(match.group(3)) for match in matches if match.group(3)}
+    if year_context is not None:
+        years.add(year_context)
+    distinct = {(int(match.group(1)), MONTHS[match.group(2).casefold()]) for match in matches}
+    if invalid or (matches and not valid):
+        precision = "unresolved"
+    elif len(distinct) > 1:
+        precision = "listed_dates"
+    elif partial:
+        precision = "yearless"
+    elif valid and years:
+        precision = "day"
+    else:
+        precision = "unknown"
+    reasons = []
+    if invalid:
+        reasons.append("invalid_date_clue")
+    if not matches:
+        reasons.append("no_date_on_page")
+    elif not years:
+        reasons.append("year_missing")
+    elif len(distinct) > 1:
+        reasons.append("ambiguous_dates")
+    if not times:
+        reasons.append("time_missing")
+    evidence = {}
+    if valid:
+        date_text = list(dict.fromkeys(valid))
+        if year_context_match and any(not match.group(3) for match in matches):
+            date_text.append(year_context_match.group(0)[:80])
+        evidence["date"] = {"text": "; ".join(date_text)[:240], "method": "visible_event_text"}
+    if times:
+        evidence["time"] = {
+            "text": "; ".join(dict.fromkeys(item.group(0)[:80] for item in times))[:240],
+            "method": "visible_event_text",
+        }
+    return {
+        "kind": "source_page", "source_url": source_url,
+        "field_evidence": evidence, "unresolved_reasons": reasons[:12],
+        "date_precision": precision, "partial_dates": partial[:31],
+    }
+
+
 def _normalize_url(value: str) -> str:
     parsed = urlsplit(value)
     path = re.sub(r"/+$", "/", parsed.path or "/")
@@ -336,6 +397,7 @@ def parse_index(
                 ]
         for start_time in starts:
             normalized_url = _normalize_url(record["url"])
+            source_metadata = _partial_source_metadata(text, normalized_url)
             events.append({
                 "feed_id": feed_id,
                 "title": title,
@@ -351,6 +413,7 @@ def parse_index(
                 "category_confidence": category_confidence,
                 "category_suggestions": suggestions,
                 "review_status": "needs_review",
+                "source_metadata": source_metadata,
                 "evidence_note": ("date_time=index_card; " if start_time else "index_card_checked; date_time=unknown; ")
                     + ("category=shared taxonomy suggestion" if category else "category=unavailable"),
             })
@@ -595,6 +658,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
     if not facts:
         facts = [(None, None, None, None, None, None)]
     output = []
+    source_metadata = _partial_source_metadata(text, index_event["normalized_url"])
     seen_starts = set()
     for start, end, location, category, confidence, source in facts:
         if start in seen_starts:
@@ -631,6 +695,7 @@ def parse_detail(html: str, index_event: dict, feed_id: int, diagnostics: dict |
             "category_suggestions": event_suggestions,
             "review_status": "needs_review",
             "evidence_note": "; ".join(evidence) or "detail_page_checked; facts not explicit",
+            "source_metadata": source_metadata,
         })
     if diagnostics is not None:
         date_matches = list(PARTIAL_DATE_RE.finditer(text))

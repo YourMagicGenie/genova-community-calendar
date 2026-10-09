@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(25);
+SELECT plan(30);
 CREATE FUNCTION pg_temp.fact(uid text, slug text, starts text DEFAULT NULL, label text DEFAULT 'Fixture')
 RETURNS jsonb LANGUAGE sql AS $$
  SELECT jsonb_build_object('feed_id', id, 'source_uid', 'genova-luzzati:' || uid,
@@ -8,7 +8,13 @@ RETURNS jsonb LANGUAGE sql AS $$
    'normalized_url', 'https://www.spazio-comune.org/prodotto/' || slug || '/',
    'category_suggestions', jsonb_build_array(jsonb_build_object(
      'category','music','confidence',0.85,'evidence','title keyword match')),
-   'review_status', 'needs_review', 'evidence_note', 'fixture_source_facts')
+   'review_status', 'needs_review', 'evidence_note', 'fixture_source_facts',
+   'source_metadata', jsonb_build_object('kind','source_page',
+     'source_url','https://www.spazio-comune.org/prodotto/' || slug || '/',
+     'field_evidence',jsonb_build_object('date',jsonb_build_object('text','12 ottobre','method','visible_event_text')),
+     'unresolved_reasons',CASE WHEN starts IS NULL THEN jsonb_build_array('year_missing') ELSE '[]'::jsonb END,
+     'date_precision',CASE WHEN starts IS NULL THEN 'yearless' ELSE 'day' END,
+     'partial_dates',CASE WHEN starts IS NULL THEN jsonb_build_array(jsonb_build_object('day',12,'month',10)) ELSE '[]'::jsonb END))
  FROM public.feeds WHERE url='https://www.spazio-comune.org/categoria-prodotto/eventi/' AND city='genova';
 $$;
 CREATE FUNCTION pg_temp.import_facts(events jsonb) RETURNS integer LANGUAGE sql AS $$
@@ -22,8 +28,11 @@ SELECT ok(NOT has_function_privilege('authenticated','public.reconcile_genova_ev
 SELECT ok(NOT has_column_privilege('authenticated','public.genova_event_facts','superseded_by','UPDATE'),'browser cannot forge audit relationship');
 SELECT ok(has_column_privilege('authenticated','public.genova_event_facts','review_status','UPDATE'),'admin review update grant remains');
 SELECT ok(NOT has_column_privilege('authenticated','public.genova_event_facts','category_suggestions','UPDATE'),'only the trusted importer can replace suggestions');
+SELECT ok(NOT has_column_privilege('authenticated','public.genova_event_facts','source_metadata','UPDATE'),'browser cannot replace private source evidence');
 
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('single-u','single')));
+SELECT is((SELECT source_metadata ->> 'kind' FROM public.genova_event_facts WHERE source_uid='genova-luzzati:single-u'),'source_page','website provenance uses the shared evidence metadata shape');
+SELECT is((SELECT source_metadata #>> '{partial_dates,0,day}' FROM public.genova_event_facts WHERE source_uid='genova-luzzati:single-u'),'12','yearless day clues are persisted');
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('single-d','single','2026-10-12T18:00:00+02:00')));
 SELECT is((SELECT category_suggestions->0->>'category' FROM public.genova_event_facts WHERE source_uid='genova-luzzati:single-d'),'music','the trusted importer stores categorized evidence');
 SELECT is((SELECT count(*)::int FROM public.genova_event_facts WHERE normalized_url LIKE '%/single/'),2,'enrichment retains both audit records');
@@ -35,6 +44,8 @@ SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('single-u','single'))
 SELECT is((SELECT count(*)::int FROM public.genova_event_facts WHERE normalized_url LIKE '%/single/'),2,'repeated and dated-to-partial scans add no stale variant');
 SELECT is((SELECT start_time::text FROM public.genova_event_facts WHERE source_uid='genova-luzzati:single-d'), '2026-10-12 16:00:00+00','dated-to-partial does not clear the reliable time');
 SELECT throws_ok($$SELECT pg_temp.import_facts(jsonb_build_array(jsonb_set(pg_temp.fact('invalid','invalid'),'{category_suggestions}','[{"category":"not-a-genova-category","confidence":0.7,"evidence":"invalid"}]'::jsonb)))$$,'invalid category suggestion','the import rejects unsupported category keys');
+SELECT throws_ok($$SELECT pg_temp.import_facts(jsonb_build_array(jsonb_set(pg_temp.fact('bad-date','bad-date'),'{source_metadata,partial_dates}','[{"day":31,"month":2}]'::jsonb)))$$,'event facts do not match the bounded private evidence contract','the importer rejects impossible partial calendar dates');
+SELECT throws_ok($$SELECT pg_temp.import_facts(jsonb_build_array(jsonb_set(pg_temp.fact('bad-timestamp','bad-timestamp','2026-10-12T18:00:00+02:00'),'{source_metadata,date_precision}','"yearless"'::jsonb)))$$,'event facts do not match the bounded private evidence contract','partial date evidence cannot accompany a canonical timestamp');
 
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('series-u','series')));
 SELECT pg_temp.import_facts(jsonb_build_array(pg_temp.fact('series-a','series','2026-10-12T18:00:00+02:00'), pg_temp.fact('series-b','series','2026-10-13T18:00:00+02:00')));

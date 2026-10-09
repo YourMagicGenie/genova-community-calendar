@@ -29,10 +29,11 @@ Every discovered candidate now appears in the Actions summary and the
 days). The JSON records index-only vs detail-fetched coverage, HTTP status,
 redirect host, explicit year/date text, local time, normalized timestamp,
 precision, location/category, extraction methods, and unresolved reasons.
-Date snippets contain only the matched date, never descriptions or full HTML.
-Yearless dates remain null timestamps; partial facts are diagnostic only and
-are not yet separate database columns. `visible_page_fallback` explicitly
-flags extraction outside the selected event scope for manual verification.
+Date/time snippets contain only bounded matched field clues, never descriptions
+or full HTML. Yearless dates remain null timestamps; partial day/month values,
+date precision, and unresolved reasons are stored in private source metadata
+for admin review. `visible_page_fallback` explicitly flags extraction outside
+the selected event scope for manual verification.
 
 The existing fail-closed behavior is preserved: robots denial or a failed
 detail request stops the run, preserves available diagnostics, and prevents
