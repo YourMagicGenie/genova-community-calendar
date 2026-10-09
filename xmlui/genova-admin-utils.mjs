@@ -5,6 +5,19 @@ export const GENOVA_CATEGORIES = [
   ["talks-workshops", "Talks / workshops"], ["family", "Family"],
   ["outdoors-tours", "Outdoors / tours"], ["community-social", "Community / social"],
 ];
+const CATEGORY_KEYS = new Set(GENOVA_CATEGORIES.map(([key]) => key));
+
+export function normalizeCategorySuggestions(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item && typeof item === "object" &&
+    CATEGORY_KEYS.has(item.category) && Number.isFinite(item.confidence) &&
+    item.confidence >= 0 && item.confidence <= 1 && typeof item.evidence === "string");
+}
+
+export function isGenovaCategory(value) {
+  return CATEGORY_KEYS.has(value);
+}
+
 const ROME = "Europe/Rome";
 const parts = (date, timeZone = ROME) => Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
   timeZone, year: "numeric", month: "2-digit", day: "2-digit",
